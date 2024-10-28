@@ -205,6 +205,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
 
 //pagina dashboard
 
+
 class DashboardPage extends StatelessWidget {
   Future<void> _obterToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -269,8 +270,8 @@ class DashboardPage extends StatelessWidget {
         backgroundColor: Color.fromRGBO(42, 48, 66, 1.0),
         leading: Icon(Icons.menu),
         actions: [
-          IconButton(onPressed: (){}, icon: Icon(Icons.search)),
-          IconButton(onPressed: (){}, icon: Icon(Icons.logout)),
+          IconButton(onPressed: _obterToken, icon: Icon(Icons.search)),
+          IconButton(onPressed: _logout, icon: Icon(Icons.logout)),
         ],
         iconTheme: IconThemeData(color: Colors.white),
       ),
@@ -334,7 +335,7 @@ class DashboardPage extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Text(
-              'Última atualização: Setembro',
+              'Última atualização: Outubro',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 18),
@@ -367,21 +368,28 @@ class DashboardPage extends StatelessWidget {
                     height: 150,
                     child: PieChart(
                       PieChartData(
-                        sections: [
-                          PieChartSectionData(
-                            value: 101,
-                            color: Colors.blue,
-                            radius: 45,
-                            title: '100%',
-                            titleStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
+                        startDegreeOffset: 360, // Inicia o gráfico a partir do topo para semicircular
                         sectionsSpace: 0,
                         centerSpaceRadius: 30,
+                        sections: [
+                          PieChartSectionData(
+                            value: 100, // Valor da seção principal
+                            color: Colors.blue,
+                            radius: 45,
+                            title: '100%', // Exibe o valor dentro do gráfico
+                            titleStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(255, 255, 255, 255),
+                            ),
+                          ),
+                          PieChartSectionData(
+                            value: 100 - 50, // Preenche o restante com a cor de fundo
+                            color: const Color.fromARGB(255, 81, 176, 254),
+                            radius: 45,
+                            title: '',
+                          ),
+                        ],
                         borderData: FlBorderData(show: false),
                       ),
                     ),
@@ -394,6 +402,10 @@ class DashboardPage extends StatelessWidget {
       ),
     );
   }
+
+ 
+
+
 
   Widget _buildRecentes() {
     return Column(
@@ -472,24 +484,24 @@ class DashboardPage extends StatelessWidget {
                 DataTable(
                   columns: const [
                     DataColumn(label: Text("ID")),
-                    DataColumn(label: Text("Nome Responsável")),
-                    DataColumn(label: Text("CPF Responsável")),
+                    DataColumn(label: Text("Nome")),
+                    DataColumn(label: Text("CPF")),
                   ],
                   rows: const [
                     DataRow(cells: [
                       DataCell(Text("#FML17")),
-                      DataCell(Text("a")),
-                      DataCell(Text("222.222.22")),
+                      DataCell(Text("Luiz")),
+                      DataCell(Text("111.093.679-61")),
                     ]),
                     DataRow(cells: [
                       DataCell(Text("#FML19")),
-                      DataCell(Text("a")),
-                      DataCell(Text("222.222.22")),
+                      DataCell(Text("Walter")),
+                      DataCell(Text("111.111.111-67")),
                     ]),
                     DataRow(cells: [
                       DataCell(Text("#FML20")),
                       DataCell(Text("Caue")),
-                      DataCell(Text("222.222.22")),
+                      DataCell(Text("222.222.589-90")),
                     ]),
                   ],
                 ),
