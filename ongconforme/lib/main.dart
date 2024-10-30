@@ -13,7 +13,6 @@ class MyApp extends StatelessWidget {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -35,6 +34,14 @@ class _LoginFormPageState extends State<LoginFormPage> {
   final TextEditingController passwordController = TextEditingController();
 
   final String apiUrl = 'https://backend-ong.vercel.app/api/loginUser';
+
+  @override
+  void dispose() {
+    // Certifique-se de descartar os controladores ao fechar o widget
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _validarLogin(String email, String senha) async {
     try {
@@ -97,7 +104,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
       Future.delayed(Duration(milliseconds: 500), () {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => DashboardPage()),
+          MaterialPageRoute(builder: (context) => DashboardPage()), // Página de destino
         );
       });
     });
@@ -134,75 +141,254 @@ class _LoginFormPageState extends State<LoginFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color.fromRGBO(255, 255, 255, 1),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 50),
-                  const Text(
-                    'Bem vindo!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, insira seu email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 15),
-                  TextFormField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Senha',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, insira sua senha';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 15),
-                  ElevatedButton(
-                    onPressed: _submitForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    child: const Text('Entrar'),
-                  ),
-                ],
+      body: Column(
+        children: [
+          // Seção da Imagem
+          Expanded(
+            flex: 2,
+            child: Container(
+              width: double.infinity,
+              child: Image.asset(
+                'assets/images/fotodaong2.png',
+                fit: BoxFit.cover,
               ),
             ),
           ),
-        ),
+          
+          // Seção do Formulário de Login
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SingleChildScrollView(
+                child: Form( // Certifique-se de que o _formKey está associado ao Form
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              SizedBox(width: 5),
+                              Text(
+                                'Conforme Instituto',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Switch(
+                            value: true,
+                            onChanged: (val) {
+                              // Função de troca de tema ou outra função
+                            },
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+
+                      Text(
+                        'Bem vindo!',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        'Faça login para entrar.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 20),
+
+                      // Campo de Email
+                      TextFormField(
+                        controller: emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.email),
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, insira seu email';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 15),
+
+                      // Campo de Senha
+                      TextFormField(
+                        controller: passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'Senha',
+                          prefixIcon: Icon(Icons.lock),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, insira sua senha';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 10),
+
+                      // Checkbox "Manter conectado"
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: true,
+                            onChanged: (val) {
+                              // Lógica para manter o usuário conectado
+                            },
+                          ),
+                          Text('Manter conectado'),
+                        ],
+                      ),
+                      SizedBox(height: 15),
+
+                      // Botão de Login
+                      ElevatedButton(
+                        onPressed: _submitForm, // Submete o formulário
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        child: const Text('Entrar'),
+                      ),
+
+                      SizedBox(height: 20),
+                      Center(
+                        child: Text(
+                          '© 2024 Ong Conforme',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String title;
 
+  CustomAppBar({required this.title});
 
+  void _navigateToPage(BuildContext context, String page) {
+    switch (page) {
+      case 'Dashboard':
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => DashboardPage()),
+          (route) => false,
+        );
+        break;
+      case 'Famílias':
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => FamiliesPage()),
+          (route) => false,
+        );
+        break;
+      case 'Doações':
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => DoacoesPage()),
+          (route) => false,
+        );
+        break;
+    }
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Pesquisar"),
+          content: TextField(
+            decoration: InputDecoration(
+              hintText: 'digite...',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              // Add your search logic here
+              print("Searching for: $value");
+            },
+          ),
+          actions: [
+            TextButton(
+              child: Text("fechar"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      title: Text(title),
+      backgroundColor: Color.fromRGBO(42, 48, 66, 1.0),
+      leading: PopupMenuButton<String>(
+        icon: Icon(Icons.menu),
+        onSelected: (String page) {
+          _navigateToPage(context, page);
+        },
+        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+          PopupMenuItem<String>(
+            value: 'Dashboard',
+            child: Text('Dashboard'),
+          ),
+          PopupMenuItem<String>(
+            value: 'Famílias',
+            child: Text('Famílias'),
+          ),
+          PopupMenuItem<String>(
+            value: 'Doações',
+            child: Text('Doações'),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.search),
+          onPressed: () {
+            _showSearchDialog(context);
+          },
+        ),
+        IconButton(onPressed: () {}, icon: Icon(Icons.logout)),
+      ],
+      iconTheme: IconThemeData(color: Colors.white),
+    );
+  }
+
+  @override
+  Size get preferredSize => Size.fromHeight(kToolbarHeight);
+}
 //pagina dashboard
 
 
@@ -264,17 +450,9 @@ class DashboardPage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Color.fromRGBO(42, 48, 66, 1.0),
-        leading: Icon(Icons.menu),
-        actions: [
-          IconButton(onPressed: _obterToken, icon: Icon(Icons.search)),
-          IconButton(onPressed: _logout, icon: Icon(Icons.logout)),
-        ],
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
+          appBar: CustomAppBar(title: ''),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -537,15 +715,7 @@ class FamiliesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-   appBar: AppBar(
-        backgroundColor: Color.fromRGBO(42, 48, 66, 1.0),
-        leading: Icon(Icons.menu),
-        actions: [
-          IconButton(onPressed: _obterToken, icon: Icon(Icons.search)),
-          IconButton(onPressed: _logout, icon: Icon(Icons.logout)),
-        ],
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
+   appBar: CustomAppBar(title: ''),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -695,6 +865,342 @@ class FamiliesPage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+class Doacao {
+  String id;
+  String categoria;
+  String item;
+  String dataCriacao;
+  int quantidade;
+  String entradaSaida;
+
+  Doacao({
+    required this.id,
+    required this.categoria,
+    required this.item,
+    required this.dataCriacao,
+    required this.quantidade,
+    required this.entradaSaida,
+  });
+}
+
+class DoacoesPage extends StatefulWidget {
+  @override
+  _DoacoesScreenState createState() => _DoacoesScreenState();
+}
+
+class _DoacoesScreenState extends State<DoacoesPage> {
+  // Lista de doações
+  List<Doacao> _doacoes = [];
+
+  // Função para adicionar uma doação
+  void _adicionarDoacao(Doacao doacao) {
+    setState(() {
+      _doacoes.add(doacao);
+    });
+  }
+
+  // Função para editar uma doação
+  void _editarDoacao(int index, Doacao novaDoacao) {
+    setState(() {
+      _doacoes[index] = novaDoacao;
+    });
+  }
+
+  // Função para remover uma doação
+  void _removerDoacao(int index) {
+    setState(() {
+      _doacoes.removeAt(index);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CustomAppBar(title: ''),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+                Text(
+                "Gerenciador de Doações",
+                style: TextStyle(
+                  fontFamily: 'Roboto',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 20),
+            Row(
+              children: [
+                
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Pesquisar Item...',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    // Função de filtro (pode ser adicionada aqui)
+                  },
+                  child: Row(
+                    children: const [
+                      Icon(Icons.filter_list),
+                      Text('Filtro'),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    _mostrarDialogoAdicionarDoacao();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.add),
+                      Text('+ doação'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Tabela de doações
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columns: const [
+                    DataColumn(label: Text('ID')),
+                    DataColumn(label: Text('Categoria')),
+                    DataColumn(label: Text('Item')),
+                    DataColumn(label: Text('Data Criação')),
+                    DataColumn(label: Text('Quantidade Atual')),
+                    DataColumn(label: Text('Entrada/Saída')),
+                    DataColumn(label: Text('Ações')),
+                  ],
+                  rows: _buildDonationRows(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Função para construir as linhas da tabela de doações
+  List<DataRow> _buildDonationRows() {
+    return List.generate(_doacoes.length, (index) {
+      final doacao = _doacoes[index];
+      return DataRow(cells: [
+        DataCell(Text(doacao.id)),
+        DataCell(Text(doacao.categoria)),
+        DataCell(Text(doacao.item)),
+        DataCell(Text(doacao.dataCriacao)),
+        DataCell(Text(doacao.quantidade.toString())),
+        DataCell(Text(doacao.entradaSaida)),
+        DataCell(
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.edit),
+                onPressed: () {
+                  _mostrarDialogoEditarDoacao(index, doacao);
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () {
+                  _removerDoacao(index);
+                },
+              ),
+            ],
+          ),
+        ),
+      ]);
+    });
+  }
+
+  // Função para exibir o diálogo de adicionar doação
+  void _mostrarDialogoAdicionarDoacao() {
+    final _formKey = GlobalKey<FormState>();
+    String id = '', categoria = '', item = '', dataCriacao = '';
+    int quantidade = 0;
+    String entradaSaida = 'Entrada';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Adicionar Doação'),
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'ID'),
+                  onSaved: (value) => id = value!,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Categoria'),
+                  onSaved: (value) => categoria = value!,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Item'),
+                  onSaved: (value) => item = value!,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Data de Criação'),
+                  onSaved: (value) => dataCriacao = value!,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Quantidade'),
+                  keyboardType: TextInputType.number,
+                  onSaved: (value) => quantidade = int.parse(value!),
+                ),
+                DropdownButtonFormField(
+                  decoration: InputDecoration(labelText: 'Entrada/Saída'),
+                  value: entradaSaida,
+                  items: ['Entrada', 'Saída'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) => entradaSaida = newValue as String,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+                  _adicionarDoacao(Doacao(
+                    id: id,
+                    categoria: categoria,
+                    item: item,
+                    dataCriacao: dataCriacao,
+                    quantidade: quantidade,
+                    entradaSaida: entradaSaida,
+                  ));
+                  Navigator.pop(context);
+                }
+              },
+              child: Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Função para exibir o diálogo de edição de doação
+  void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
+    final _formKey = GlobalKey<FormState>();
+    String id = doacao.id, categoria = doacao.categoria, item = doacao.item;
+    String dataCriacao = doacao.dataCriacao, entradaSaida = doacao.entradaSaida;
+    int quantidade = doacao.quantidade;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Editar Doação'),
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: id,
+                  decoration: InputDecoration(labelText: 'ID'),
+                  onSaved: (value) => id = value!,
+                ),
+                TextFormField(
+                  initialValue: categoria,
+                  decoration: InputDecoration(labelText: 'Categoria'),
+                  onSaved: (value) => categoria = value!,
+                ),
+                TextFormField(
+                  initialValue: item,
+                  decoration: InputDecoration(labelText: 'Item'),
+                  onSaved: (value) => item = value!,
+                ),
+                TextFormField(
+                  initialValue: dataCriacao,
+                  decoration: InputDecoration(labelText: 'Data de Criação'),
+                  onSaved: (value) => dataCriacao = value!,
+                ),
+                TextFormField(
+                  initialValue: quantidade.toString(),
+                  decoration: InputDecoration(labelText: 'Quantidade'),
+                  keyboardType: TextInputType.number,
+                  onSaved: (value) => quantidade = int.parse(value!),
+                ),
+                DropdownButtonFormField(
+                  decoration: InputDecoration(labelText: 'Entrada/Saída'),
+                  value: entradaSaida,
+                  items: ['Entrada', 'Saída'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) => entradaSaida = newValue as String,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+                  _editarDoacao(index, Doacao(
+                    id: id,
+                    categoria: categoria,
+                    item: item,
+                    dataCriacao: dataCriacao,
+                    quantidade: quantidade,
+                    entradaSaida: entradaSaida,
+                  ));
+                  Navigator.pop(context);
+                }
+              },
+              child: Text('Salvar'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
