@@ -301,13 +301,16 @@ class DashboardPage extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Family List Section
-              _buildFamilyList(),
-
-              const SizedBox(height: 24),
-
-              // Filters Section
-              _buildFiltersSection(),
+              // Navegar para FamiliesPage
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => FamiliesPage()),
+                  );
+                },
+                child: Text("Ver Famílias e Filtros"),
+              ),
             ],
           ),
         ),
@@ -349,7 +352,7 @@ class DashboardPage extends StatelessWidget {
                       Text(
                         'R\$4042',
                         style: TextStyle(
-                          fontSize: 30,
+                          fontSize:  30,
                           fontWeight: FontWeight.bold,
                           color: Color.fromRGBO(42, 48, 66, 1.0),
                         ),
@@ -405,8 +408,6 @@ class DashboardPage extends StatelessWidget {
 
  
 
-
-
   Widget _buildRecentes() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -449,6 +450,115 @@ class DashboardPage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+
+  Widget _buildRecentActivity(String date, String activity) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              date,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(child: Text(activity)),
+        ],
+      ),
+    );
+  }
+}
+class FamiliesPage extends StatelessWidget {
+  Future<void> _obterToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('tokenJWT');
+
+    if (token != null) {
+      _mostrarToken(token);
+    } else {
+      _mostrarErro('Nenhum token encontrado.');
+    }
+  }
+
+  void _mostrarToken(String token) {
+    showDialog(
+      context: MyApp.navigatorKey.currentState!.overlay!.context,
+      builder: (context) => AlertDialog(
+        title: const Text('Token JWT'),
+        content: Text(token),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _mostrarErro(String mensagem) {
+    showDialog(
+      context: MyApp.navigatorKey.currentState!.overlay!.context,
+      builder: (context) => AlertDialog(
+        title: const Text('Erro'),
+        content: Text(mensagem),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('tokenJWT');
+    Navigator.pushReplacement(
+      MyApp.navigatorKey.currentState!.overlay!.context,
+      MaterialPageRoute(builder: (context) => LoginFormPage()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+   appBar: AppBar(
+        backgroundColor: Color.fromRGBO(42, 48, 66, 1.0),
+        leading: Icon(Icons.menu),
+        actions: [
+          IconButton(onPressed: _obterToken, icon: Icon(Icons.search)),
+          IconButton(onPressed: _logout, icon: Icon(Icons.logout)),
+        ],
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildFamilyList(),
+              const SizedBox(height: 24),
+              _buildFiltersSection(),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -548,8 +658,7 @@ class DashboardPage extends StatelessWidget {
                           DropdownMenuItem(
                               value: "Responsável", child: Text("Responsável")),
                           DropdownMenuItem(value: "Filho", child: Text("Filho")),
-                          DropdownMenuItem(
-                              value: "Outro", child: Text("Outro")),
+                          DropdownMenuItem(value: "Outro", child: Text("Outro")),
                         ],
                         onChanged: (value) {},
                       ),
@@ -565,10 +674,8 @@ class DashboardPage extends StatelessWidget {
                         ),
                         items: const [
                           DropdownMenuItem(value: "Todos", child: Text("Todos")),
-                          DropdownMenuItem(
-                              value: "Masculino", child: Text("Masculino")),
-                          DropdownMenuItem(
-                              value: "Feminino", child: Text("Feminino")),
+                          DropdownMenuItem(value: "Masculino", child: Text("Masculino")),
+                          DropdownMenuItem(value: "Feminino", child: Text("Feminino")),
                         ],
                         onChanged: (value) {},
                       ),
@@ -588,29 +695,6 @@ class DashboardPage extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildRecentActivity(String date, String activity) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: Colors.blue,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              date,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(child: Text(activity)),
-        ],
-      ),
     );
   }
 }
