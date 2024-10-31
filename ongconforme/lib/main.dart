@@ -496,165 +496,237 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildArrecadacaoTotal() {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Arrecadação Total',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromRGBO(42, 48, 66, 1.0)),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Última atualização: Outubro',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'R\$4042',
-                        style: TextStyle(
-                          fontSize:  30,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromRGBO(42, 48, 66, 1.0),
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '12% acima da meta',
-                        style: TextStyle(color: Colors.green, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: 150,
-                    child: PieChart(
-                      PieChartData(
-                        startDegreeOffset: 360, // Inicia o gráfico a partir do topo para semicircular
-                        sectionsSpace: 0,
-                        centerSpaceRadius: 30,
-                        sections: [
-                          PieChartSectionData(
-                            value: 100, // Valor da seção principal
-                            color: Colors.blue,
-                            radius: 45,
-                            title: '100%', // Exibe o valor dentro do gráfico
-                            titleStyle: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(255, 255, 255, 255),
-                            ),
-                          ),
-                          PieChartSectionData(
-                            value: 100 - 50, // Preenche o restante com a cor de fundo
-                            color: const Color.fromARGB(255, 81, 176, 254),
-                            radius: 45,
-                            title: '',
-                          ),
-                        ],
-                        borderData: FlBorderData(show: false),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
- 
-
-  Widget _buildRecentes() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Recentes',
-          style: TextStyle(
+Widget _buildArrecadacaoTotal() {
+  return Card(
+    elevation: 5,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Arrecadação Total',
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Color.fromRGBO(42, 48, 66, 1.0)),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          elevation: 5,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+              color: Color.fromRGBO(42, 48, 66, 1.0),
+            ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                _buildRecentActivity(
-                    '22 Nov', 'Responded to need "Volunteer Activities"'),
-                _buildRecentActivity(
-                    '17 Nov',
-                    'Everyone realizes why a new common language would be desirable...'),
-                _buildRecentActivity('Hoje',
-                    'Joined the group "Boardsmanship Forum"'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                  child: const Text('View More'),
+          const SizedBox(height: 8),
+          const Text(
+            'Última atualização: Setembro',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'R\$4042',
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromRGBO(42, 48, 66, 1.0),
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '12% acima da meta',
+                      style: TextStyle(color: Colors.green, fontSize: 14),
+                    ),
+                  ],
                 ),
-              ],
+              ),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 100,
+                      width: 100,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          PieChart(
+                            PieChartData(
+                              startDegreeOffset: 270, // Início do arco
+                              sectionsSpace: 0,
+                              centerSpaceRadius: 40,
+                              sections: [
+                                PieChartSectionData(
+                                  value: 101,
+                                  color: const Color(0xFF51B0FE),
+                                  radius: 18,
+                                  title: '',
+                                ),
+                                PieChartSectionData(
+                                  value: 100 - 101,
+                                  color: const Color(0xFFE6F0FA),
+                                  radius: 18,
+                                  title: '',
+                                ),
+                              ],
+                              borderData: FlBorderData(show: false),
+                            ),
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Text(
+                                '101.0%',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Meta',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+ 
+
+ Widget _buildRecentes() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        'Recentes',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Color.fromRGBO(42, 48, 66, 1.0),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              _buildRecentActivity(
+                  '22 Nov', 'Responded to need "Volunteer Activities"'),
+              _buildRecentActivity(
+                  '17 Nov',
+                  'Everyone realizes why a new common language would be desirable...'),
+              _buildRecentActivity('Hoje',
+                  'Joined the group "Boardsmanship Forum"'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  side: const BorderSide(color: Colors.blue),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Text(
+                      'View More',
+                      style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_forward, color: Color.fromARGB(255, 255, 255, 255), size: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _buildRecentActivity(String date, String activity) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: date == 'Hoje' ? Colors.blue : Colors.white,
+                border: Border.all(color: Colors.blue, width: 2),
+                shape: BoxShape.circle,
+              ),
+            ),
+            if (date != 'Hoje')
+              Container(
+                width: 2,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(width: 8),
+        Text(
+          date,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color.fromRGBO(42, 48, 66, 1.0),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Icon(Icons.arrow_forward, color: Colors.grey, size: 14),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            activity,
+            style: const TextStyle(
+              color: Color.fromRGBO(42, 48, 66, 0.7),
             ),
           ),
         ),
       ],
-    );
-  }
-
-
-  Widget _buildRecentActivity(String date, String activity) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: Colors.blue,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              date,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(child: Text(activity)),
-        ],
-      ),
-    );
-  }
+      
+    ),
+  );
 }
+}
+
+
 class FamiliesPage extends StatelessWidget {
   Future<void> _obterToken() async {
     final prefs = await SharedPreferences.getInstance();
