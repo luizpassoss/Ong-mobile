@@ -675,12 +675,12 @@ class DashboardPage extends StatelessWidget {
             child: Column(
               children: [
                 _buildRecentActivity(
-                    '22 Nov', 'Responded to need "Volunteer Activities"'),
+                    '22 Nov', 'Caue doou 5 kilos de arroz'),
                 _buildRecentActivity(
                     '17 Nov',
-                    'Everyone realizes why a new common language would be desirable...'),
+                    'Walter doou 5 kilos de carne'),
                 _buildRecentActivity('Hoje',
-                    'Joined the group "Boardsmanship Forum"'),
+                    'João doou 10 kilos de macarrão'),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {},
@@ -1077,9 +1077,29 @@ class Doacao {
     required this.unidadeMedida,
     required this.entradaSaida,
   });
+
+  factory Doacao.fromJson(Map<String, dynamic> json) {
+    return Doacao(
+      id: json['id'],
+      categoria: json['categoria'],
+      item: json['item'],
+      dataCriacao: json['dataCriacao'],
+      quantidade: json['quantidade'],
+      unidadeMedida: json['unidadeMedida'],
+      entradaSaida: json['entradaSaida'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'categoria': categoria,
+        'item': item,
+        'dataCriacao': dataCriacao,
+        'quantidade': quantidade,
+        'unidadeMedida': unidadeMedida,
+        'entradaSaida': entradaSaida,
+      };
 }
-
-
 
 class DoacoesPage extends StatefulWidget {
   @override
@@ -1088,26 +1108,195 @@ class DoacoesPage extends StatefulWidget {
 
 class _DoacoesPageState extends State<DoacoesPage> {
   List<Doacao> _doacoes = [];
-  TextEditingController searchController = TextEditingController();
 
-  void _adicionarDoacao(Doacao doacao) {
-    setState(() {
-      _doacoes.add(doacao);
-    });
+  @override
+  void initState() {
+    super.initState();
+    buscarDoacoes(); // Carrega as doações ao iniciar a página
   }
 
-  void _editarDoacao(int index, Doacao novaDoacao) {
-    setState(() {
-      _doacoes[index] = novaDoacao;
-    });
+  // Função para buscar todas as doações
+  Future<void> buscarDoacoes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://backend-ong.vercel.app/api/getDoacao'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _doacoes = data.map((json) => Doacao.fromJson(json)).toList();
+        });
+      } else {
+        throw Exception('Erro ao buscar doações');
+      }
+    } catch (e) {
+      print('Erro ao buscar doações: $e');
+    }
   }
 
-  void _removerDoacao(int index) {
-    setState(() {
-      _doacoes.removeAt(index);
-    });
+  // Função para buscar uma doação específica
+  Future<Doacao?> buscarDoacaoPorId(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://backend-ong.vercel.app/api/getSingleDoacao/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return Doacao.fromJson(jsonDecode(response.body));
+      } else {
+        print('Erro ao buscar a doação');
+        return null;
+      }
+    } catch (e) {
+      print('Erro ao buscar a doação: $e');
+      return null;
+    }
   }
 
+  // Função para adicionar uma nova doação
+  Future<void> adicionarDoacao(Doacao doacao) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://backend-ong.vercel.app/api/addDoacao'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(doacao.toJson()),
+      );
+
+      if (response.statusCode == 201) {
+        buscarDoacoes();
+      } else {
+        throw Exception('Erro ao adicionar doação');
+      }
+    } catch (e) {
+      print('Erro ao adicionar doação: $e');
+    }
+  }
+
+  // Função para editar uma doação existente
+  Future<void> editarDoacao(int index, Doacao doacao) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.put(
+        Uri.parse('https://backend-ong.vercel.app/api/updateDoacao/${doacao.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(doacao.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _doacoes[index] = doacao;
+        });
+      } else {
+        throw Exception('Erro ao editar doação');
+      }
+    } catch (e) {
+      print('Erro ao editar doação: $e');
+    }
+  }
+
+  // Função para atualizar a quantidade em uma doação
+  Future<void> atualizarQuantidade(String id, int novaQuantidade) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.patch(
+        Uri.parse('https://backend-ong.vercel.app/api/updateQntdInDoacao/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'quantidade': novaQuantidade}),
+      );
+
+      if (response.statusCode == 200) {
+        buscarDoacoes();
+      } else {
+        throw Exception('Erro ao atualizar quantidade');
+      }
+    } catch (e) {
+      print('Erro ao atualizar quantidade: $e');
+    }
+  }
+
+  // Função para atualizar a meta de uma doação
+  Future<void> atualizarMeta(String id, int novaMeta) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.patch(
+        Uri.parse('https://backend-ong.vercel.app/api/updateMetaInDoacao/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'meta': novaMeta}),
+      );
+
+      if (response.statusCode == 200) {
+        buscarDoacoes();
+      } else {
+        throw Exception('Erro ao atualizar meta');
+      }
+    } catch (e) {
+      print('Erro ao atualizar meta: $e');
+    }
+  }
+
+  // Função para remover uma doação
+  Future<void> removerDoacao(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+    final doacao = _doacoes[index];
+
+    try {
+      final response = await http.delete(
+        Uri.parse('https://backend-ong.vercel.app/api/deleteDoacao/${doacao.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _doacoes.removeAt(index);
+        });
+      } else {
+        throw Exception('Erro ao remover doação');
+      }
+    } catch (e) {
+      print('Erro ao remover doação: $e');
+    }
+  }
+    // Função para exibir o histórico de doações
   void _navegarParaHistorico() {
     Navigator.push(
       context,
@@ -1116,245 +1305,15 @@ class _DoacoesPageState extends State<DoacoesPage> {
       ),
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(title: ''),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSearchAndActionBar(),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: Icon(Icons.history),
-              label: Text('Ver Histórico de Doações'),
-              onPressed: _navegarParaHistorico,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Divider(thickness: 1, color: Colors.grey.shade300),
-            const SizedBox(height: 10),
-            _buildDonationsTable(),
-            const SizedBox(height: 20),
-            Footer(), // Rodapé no final
-          ],
-        ),
-      ),
-    );
-  }
-    // Função para mostrar o diálogo de adicionar doação
-  void _mostrarDialogoAdicionarDoacao() {
+    void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
     final _formKey = GlobalKey<FormState>();
-    String id = '', categoria = '', item = '', dataCriacao = '';
-    int quantidade = 0;
-    String unidadeMedida = 'Unidade';
-    String entradaSaida = 'Entrada';
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Adicionar Doação'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'ID'),
-                    onSaved: (value) => id = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Categoria'),
-                    onSaved: (value) => categoria = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Item'),
-                    onSaved: (value) => item = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Data de Criação'),
-                    onSaved: (value) => dataCriacao = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Quantidade'),
-                    keyboardType: TextInputType.number,
-                    onSaved: (value) => quantidade = int.parse(value!),
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  DropdownButtonFormField(
-                    decoration: InputDecoration(labelText: 'Unidade de Medida'),
-                    value: unidadeMedida,
-                    items: ['Unidade', 'Kilo'].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) => unidadeMedida = newValue as String,
-                  ),
-                  DropdownButtonFormField(
-                    decoration: InputDecoration(labelText: 'Entrada/Saída'),
-                    value: entradaSaida,
-                    items: ['Entrada', 'Saída'].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) => entradaSaida = newValue as String,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  _adicionarDoacao(Doacao(
-                    id: id,
-                    categoria: categoria,
-                    item: item,
-                    dataCriacao: dataCriacao,
-                    quantidade: quantidade,
-                    unidadeMedida: unidadeMedida,
-                    entradaSaida: entradaSaida,
-                  ));
-                  Navigator.pop(context);
-                }
-              },
-              child: Text('Salvar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildSearchAndActionBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: searchController,
-            decoration: InputDecoration(
-              labelText: 'Pesquisar Item...',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onChanged: (value) {
-              setState(() {}); // Atualize a exibição com base na pesquisa
-            },
-          ),
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          icon: Icon(Icons.filter_list),
-          label: Text('Filtro'),
-          onPressed: () {
-            // Lógica para filtros adicionais
-          },
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          icon: Icon(Icons.add),
-          label: Text('Nova Doação'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-          ),
-          onPressed: _mostrarDialogoAdicionarDoacao,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDonationsTable() {
-    return Expanded(
-      child: _doacoes.isEmpty
-          ? Center(
-              child: Text(
-                'Nenhuma doação encontrada.',
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-            )
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('ID')),
-                  DataColumn(label: Text('Categoria')),
-                  DataColumn(label: Text('Item')),
-                  DataColumn(label: Text('Data Criação')),
-                  DataColumn(label: Text('Quantidade')),
-                  DataColumn(label: Text('Unidade')),
-                  DataColumn(label: Text('Entrada/Saída')),
-                  DataColumn(label: Text('Ações')),
-                ],
-                rows: _buildDonationRows(),
-              ),
-            ),
-    );
-  }
-
-  List<DataRow> _buildDonationRows() {
-    return List.generate(_doacoes.length, (index) {
-      final doacao = _doacoes[index];
-      return DataRow(cells: [
-        DataCell(Text(doacao.id)),
-        DataCell(Text(doacao.categoria)),
-        DataCell(Text(doacao.item)),
-        DataCell(Text(doacao.dataCriacao)),
-        DataCell(Text(doacao.quantidade.toString())),
-        DataCell(Text(doacao.unidadeMedida)),
-        DataCell(Text(doacao.entradaSaida)),
-        DataCell(
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.edit),
-                onPressed: () {
-                  _mostrarDialogoEditarDoacao(index, doacao);
-                },
-              ),
-              IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () {
-                  _removerDoacao(index);
-                },
-              ),
-            ],
-          ),
-        ),
-      ]);
-    });
-  }
-
-  void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
-    final _formKey = GlobalKey<FormState>();
-    String id = doacao.id, categoria = doacao.categoria, item = doacao.item;
-    String dataCriacao = doacao.dataCriacao, entradaSaida = doacao.entradaSaida;
+    String id = doacao.id;
+    String categoria = doacao.categoria;
+    String item = doacao.item;
+    String dataCriacao = doacao.dataCriacao;
     int quantidade = doacao.quantidade;
     String unidadeMedida = doacao.unidadeMedida;
+    String entradaSaida = doacao.entradaSaida;
 
     showDialog(
       context: context,
@@ -1365,7 +1324,6 @@ class _DoacoesPageState extends State<DoacoesPage> {
             child: Form(
               key: _formKey,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   TextFormField(
                     initialValue: id,
@@ -1426,16 +1384,228 @@ class _DoacoesPageState extends State<DoacoesPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
               child: Text('Cancelar'),
             ),
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
-                  _editarDoacao(index, Doacao(
+                  final novaDoacao = Doacao(
+                    id: id,
+                    categoria: categoria,
+                    item: item,
+                    dataCriacao: dataCriacao,
+                    quantidade: quantidade,
+                    unidadeMedida: unidadeMedida,
+                    entradaSaida: entradaSaida,
+                  );
+                  editarDoacao(index, novaDoacao); // Chama a função de edição
+                  Navigator.pop(context);
+                }
+              },
+              child: Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+ @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CustomAppBar(title: ''),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSearchAndActionBar(),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: Icon(Icons.history),
+              label: Text('Ver Histórico de Doações'),
+              onPressed: _navegarParaHistorico,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Divider(thickness: 1, color: Colors.grey.shade300),
+            const SizedBox(height: 10),
+            _buildDonationsTable(),
+            const SizedBox(height: 20),
+            Footer(), // Rodapé no final
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDonationsTable() {
+    return _doacoes.isEmpty
+        ? Center(
+            child: Text(
+              'Nenhuma doação encontrada.',
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+          )
+        : SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text('ID')),
+                DataColumn(label: Text('Categoria')),
+                DataColumn(label: Text('Item')),
+                DataColumn(label: Text('Data Criação')),
+                DataColumn(label: Text('Quantidade')),
+                DataColumn(label: Text('Unidade')),
+                DataColumn(label: Text('Entrada/Saída')),
+                DataColumn(label: Text('Ações')),
+              ],
+              rows: _buildDonationRows(),
+            ),
+          );
+  }
+
+  List<DataRow> _buildDonationRows() {
+    return List.generate(_doacoes.length, (index) {
+      final doacao = _doacoes[index];
+      return DataRow(cells: [
+        DataCell(Text(doacao.id)),
+        DataCell(Text(doacao.categoria)),
+        DataCell(Text(doacao.item)),
+        DataCell(Text(doacao.dataCriacao)),
+        DataCell(Text(doacao.quantidade.toString())),
+        DataCell(Text(doacao.unidadeMedida)),
+        DataCell(Text(doacao.entradaSaida)),
+        DataCell(
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.edit),
+                onPressed: () {
+                  _mostrarDialogoEditarDoacao(index, doacao);
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () {
+                  removerDoacao(index);
+                },
+              ),
+            ],
+          ),
+        ),
+      ]);
+    });
+  }
+    Widget _buildSearchAndActionBar() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            decoration: InputDecoration(
+              labelText: 'Pesquisar Item...',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        ElevatedButton.icon(
+          icon: Icon(Icons.add),
+          label: Text('Nova Doação'),
+          onPressed: _mostrarDialogoAdicionarDoacao,
+        ),
+      ],
+    );
+  }
+
+
+  void _mostrarDialogoAdicionarDoacao() {
+    final _formKey = GlobalKey<FormState>();
+    String id = '', categoria = '', item = '', dataCriacao = '';
+    int quantidade = 0;
+    String unidadeMedida = 'Unidade';
+    String entradaSaida = 'Entrada';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Adicionar Doação'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'ID'),
+                    onSaved: (value) => id = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Categoria'),
+                    onSaved: (value) => categoria = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Item'),
+                    onSaved: (value) => item = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Data de Criação'),
+                    onSaved: (value) => dataCriacao = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Quantidade'),
+                    keyboardType: TextInputType.number,
+                    onSaved: (value) => quantidade = int.parse(value!),
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                  ),
+                  DropdownButtonFormField(
+                    decoration: InputDecoration(labelText: 'Unidade de Medida'),
+                    value: unidadeMedida,
+                    items: ['Unidade', 'Kilo'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) => unidadeMedida = newValue as String,
+                  ),
+                  DropdownButtonFormField(
+                    decoration: InputDecoration(labelText: 'Entrada/Saída'),
+                    value: entradaSaida,
+                    items: ['Entrada', 'Saída'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) => entradaSaida = newValue as String,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+                  adicionarDoacao(Doacao(
                     id: id,
                     categoria: categoria,
                     item: item,
@@ -1455,6 +1625,7 @@ class _DoacoesPageState extends State<DoacoesPage> {
     );
   }
 }
+
 
 
 // Página de histórico de doações
