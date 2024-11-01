@@ -32,8 +32,8 @@ class _LoginFormPageState extends State<LoginFormPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-
   final String apiUrl = 'https://backend-ong.vercel.app/api/loginUser';
+  bool isLoading = false; // Adiciona o estado isLoading
 
   @override
   void dispose() {
@@ -44,6 +44,10 @@ class _LoginFormPageState extends State<LoginFormPage> {
   }
 
   Future<void> _validarLogin(String email, String senha) async {
+    setState(() {
+      isLoading = true; // Ativa o indicador de carregamento
+    });
+
     try {
       print('Enviando requisição para API com email: $email e senha: $senha');
 
@@ -77,6 +81,10 @@ class _LoginFormPageState extends State<LoginFormPage> {
       }
     } catch (e) {
       _mostrarErro('Erro ao conectar à API.');
+    } finally {
+      setState(() {
+        isLoading = false; // Desativa o indicador de carregamento
+      });
     }
   }
 
@@ -104,7 +112,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
       Future.delayed(Duration(milliseconds: 500), () {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => DashboardPage()), // Página de destino
+          MaterialPageRoute(builder: (context) => DashboardPage()),
         );
       });
     });
@@ -161,7 +169,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: SingleChildScrollView(
-                child: Form( // Certifique-se de que o _formKey está associado ao Form
+                child: Form(
                   key: _formKey,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -260,23 +268,17 @@ class _LoginFormPageState extends State<LoginFormPage> {
                       ),
                       SizedBox(height: 15),
 
-                      // Botão de Login
-                      ElevatedButton(
-                        onPressed: _submitForm, // Submete o formulário
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          minimumSize: const Size(double.infinity, 50),
-                        ),
-                        child: const Text('Entrar'),
-                      ),
-
-                      SizedBox(height: 20),
-                      Center(
-                        child: Text(
-                          '© 2024 Ong Conforme',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
+                      // Botão de Login com o indicador de carregamento
+                      isLoading
+                          ? Center(child: CircularProgressIndicator()) // Indicador de carregamento
+                          : ElevatedButton(
+                              onPressed: _submitForm, // Submete o formulário
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                minimumSize: const Size(double.infinity, 50),
+                              ),
+                              child: const Text('Entrar'),
+                            ),
                     ],
                   ),
                 ),
@@ -288,6 +290,21 @@ class _LoginFormPageState extends State<LoginFormPage> {
     );
   }
 }
+class Footer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20.0, bottom: 10.0),
+      child: Center(
+        child: Text(
+          '© 2024 Ong Conforme',
+          style: TextStyle(color: Colors.grey),
+        ),
+      ),
+    );
+  }
+}
+
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -332,7 +349,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               border: OutlineInputBorder(),
             ),
             onChanged: (value) {
-              // Adicione a lógica de pesquisa aqui
               print("Pesquisando por: $value");
             },
           ),
@@ -350,7 +366,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   void _logout(BuildContext context) {
-    // Redireciona para a tela de login, limpando a pilha de navegação
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginFormPage()),
@@ -371,15 +386,33 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
           PopupMenuItem<String>(
             value: 'Dashboard',
-            child: Text('Dashboard'),
+            child: Row(
+              children: [
+                Icon(Icons.dashboard, color: Colors.blue),
+                SizedBox(width: 10),
+                Text('Dashboard'),
+              ],
+            ),
           ),
           PopupMenuItem<String>(
             value: 'Famílias',
-            child: Text('Famílias'),
+            child: Row(
+              children: [
+                Icon(Icons.people, color: Colors.green),
+                SizedBox(width: 10),
+                Text('Famílias'),
+              ],
+            ),
           ),
           PopupMenuItem<String>(
             value: 'Doações',
-            child: Text('Doações'),
+            child: Row(
+              children: [
+                Icon(Icons.card_giftcard, color: Colors.orange),
+                SizedBox(width: 10),
+                Text('Doações'),
+              ],
+            ),
           ),
         ],
       ),
@@ -393,7 +426,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: Icon(Icons.logout),
           onPressed: () {
-            _logout(context); // Chama a função de logout
+            _logout(context);
           },
         ),
       ],
@@ -404,6 +437,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
+
 
 
 class DashboardPage extends StatelessWidget {
@@ -464,9 +498,9 @@ class DashboardPage extends StatelessWidget {
   }
 
   @override
-   Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
     return Scaffold(
-          appBar: CustomAppBar(title: ''),
+      appBar: CustomAppBar(title: ''),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -492,6 +526,9 @@ class DashboardPage extends StatelessWidget {
               _buildRecentes(),
 
               const SizedBox(height: 24),
+              
+              // Rodapé
+              Footer(),
             ],
           ),
         ),
@@ -499,322 +536,133 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-Widget _buildArrecadacaoTotal() {
-  return Card(
-    elevation: 5,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Arrecadação Total',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color.fromRGBO(42, 48, 66, 1.0),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Última atualização: Setembro',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'R\$4042',
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: Color.fromRGBO(42, 48, 66, 1.0),
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      '12% acima da meta',
-                      style: TextStyle(color: Colors.green, fontSize: 14),
-                    ),
-                  ],
-                ),
+  Widget _buildArrecadacaoTotal() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Arrecadação Total',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color.fromRGBO(42, 48, 66, 1.0),
               ),
-              Expanded(
-                flex: 2,
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: 100,
-                      width: 100,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          PieChart(
-                            PieChartData(
-                              startDegreeOffset: 270, // Início do arco
-                              sectionsSpace: 0,
-                              centerSpaceRadius: 40,
-                              sections: [
-                                PieChartSectionData(
-                                  value: 101,
-                                  color: const Color(0xFF51B0FE),
-                                  radius: 18,
-                                  title: '',
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Última atualização: Setembro',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'R\$4042',
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromRGBO(42, 48, 66, 1.0),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '12% acima da meta',
+                        style: TextStyle(color: Colors.green, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 100,
+                        width: 100,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            PieChart(
+                              PieChartData(
+                                startDegreeOffset: 270,
+                                sectionsSpace: 0,
+                                centerSpaceRadius: 40,
+                                sections: [
+                                  PieChartSectionData(
+                                    value: 101,
+                                    color: const Color(0xFF51B0FE),
+                                    radius: 18,
+                                    title: '',
+                                  ),
+                                  PieChartSectionData(
+                                    value: 100 - 101,
+                                    color: const Color(0xFFE6F0FA),
+                                    radius: 18,
+                                    title: '',
+                                  ),
+                                ],
+                                borderData: FlBorderData(show: false),
+                              ),
+                            ),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Text(
+                                  '101.0%',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
                                 ),
-                                PieChartSectionData(
-                                  value: 100 - 101,
-                                  color: const Color(0xFFE6F0FA),
-                                  radius: 18,
-                                  title: '',
+                                SizedBox(height: 4),
+                                Text(
+                                  'Meta',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ],
-                              borderData: FlBorderData(show: false),
                             ),
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Text(
-                                '101.0%',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Meta',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
-}
- 
-
- Widget _buildRecentes() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'Recentes',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Color.fromRGBO(42, 48, 66, 1.0),
-        ),
-      ),
-      const SizedBox(height: 8),
-      Card(
-        elevation: 5,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              _buildRecentActivity(
-                  '22 Nov', 'Responded to need "Volunteer Activities"'),
-              _buildRecentActivity(
-                  '17 Nov',
-                  'Everyone realizes why a new common language would be desirable...'),
-              _buildRecentActivity('Hoje',
-                  'Joined the group "Boardsmanship Forum"'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  side: const BorderSide(color: Colors.blue),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    ],
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Text(
-                      'View More',
-                      style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, color: Color.fromARGB(255, 255, 255, 255), size: 16),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
-Widget _buildRecentActivity(String date, String activity) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8.0),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: date == 'Hoje' ? Colors.blue : Colors.white,
-                border: Border.all(color: Colors.blue, width: 2),
-                shape: BoxShape.circle,
-              ),
+              ],
             ),
-            if (date != 'Hoje')
-              Container(
-                width: 2,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                ),
-              ),
           ],
         ),
-        const SizedBox(width: 8),
-        Text(
-          date,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color.fromRGBO(42, 48, 66, 1.0),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Icon(Icons.arrow_forward, color: Colors.grey, size: 14),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            activity,
-            style: const TextStyle(
-              color: Color.fromRGBO(42, 48, 66, 0.7),
-            ),
-          ),
-        ),
-      ],
-      
-    ),
-  );
-}
-}
-
-
-class FamiliesPage extends StatelessWidget {
-  Future<void> _obterToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('tokenJWT');
-
-    if (token != null) {
-      _mostrarToken(token);
-    } else {
-      _mostrarErro('Nenhum token encontrado.');
-    }
-  }
-
-  void _mostrarToken(String token) {
-    showDialog(
-      context: MyApp.navigatorKey.currentState!.overlay!.context,
-      builder: (context) => AlertDialog(
-        title: const Text('Token JWT'),
-        content: Text(token),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
       ),
     );
   }
 
-  void _mostrarErro(String mensagem) {
-    showDialog(
-      context: MyApp.navigatorKey.currentState!.overlay!.context,
-      builder: (context) => AlertDialog(
-        title: const Text('Erro'),
-        content: Text(mensagem),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('tokenJWT');
-    Navigator.pushReplacement(
-      MyApp.navigatorKey.currentState!.overlay!.context,
-      MaterialPageRoute(builder: (context) => LoginFormPage()),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-   appBar: CustomAppBar(title: ''),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildFamilyList(),
-              const SizedBox(height: 24),
-              _buildFiltersSection(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFamilyList() {
+  Widget _buildRecentes() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Famílias Cadastradas',
+          'Recentes',
           style: TextStyle(
-              fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color.fromRGBO(42, 48, 66, 1.0),
+          ),
         ),
         const SizedBox(height: 8),
         Card(
@@ -826,6 +674,233 @@ class FamiliesPage extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
+                _buildRecentActivity(
+                    '22 Nov', 'Responded to need "Volunteer Activities"'),
+                _buildRecentActivity(
+                    '17 Nov',
+                    'Everyone realizes why a new common language would be desirable...'),
+                _buildRecentActivity('Hoje',
+                    'Joined the group "Boardsmanship Forum"'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    side: const BorderSide(color: Colors.blue),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text(
+                        'View More',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward, color: Colors.white, size: 16),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivity(String date, String activity) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: date == 'Hoje' ? Colors.blue : Colors.white,
+                  border: Border.all(color: Colors.blue, width: 2),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              if (date != 'Hoje')
+                Container(
+                  width: 2,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 8),
+          Text(
+            date,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color.fromRGBO(42, 48, 66, 1.0),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(Icons.arrow_forward, color: Colors.grey, size: 14),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              activity,
+              style: const TextStyle(
+                color: Color.fromRGBO(42, 48, 66, 0.7),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+class FamiliesPage extends StatefulWidget {
+  @override
+  _FamiliesPageState createState() => _FamiliesPageState();
+}
+
+class _FamiliesPageState extends State<FamiliesPage> {
+  List<Family> _families = []; // Lista de famílias cadastradas
+
+  // Variáveis para filtros
+  bool _isFiltersExpanded = false;
+  Map<String, bool> parentescoOptions = {
+    'Todos': true,
+    'Responsável': false,
+    'Filho': false,
+    'Outro': false,
+  };
+  String selectedGender = 'Todos';
+  RangeValues ageRange = const RangeValues(5, 95);
+
+  // Função para adicionar uma nova família
+  void _addFamily(Family family) {
+    setState(() {
+      _families.add(family);
+    });
+  }
+
+  // Função para mostrar o diálogo de cadastro de família
+  void _showAddFamilyDialog() {
+    String id = '', name = '', cpf = '';
+    final _formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cadastro de Família'),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                decoration: InputDecoration(labelText: 'ID'),
+                validator: (value) => value!.isEmpty ? 'Informe o ID' : null,
+                onSaved: (value) => id = value!,
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Nome do Responsável'),
+                validator: (value) => value!.isEmpty ? 'Informe o Nome' : null,
+                onSaved: (value) => name = value!,
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'CPF do Responsável'),
+                validator: (value) => value!.isEmpty ? 'Informe o CPF' : null,
+                onSaved: (value) => cpf = value!,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                _formKey.currentState!.save();
+                _addFamily(Family(id: id, name: name, cpf: cpf));
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text('Cadastrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _toggleFilterExpansion() {
+    setState(() {
+      _isFiltersExpanded = !_isFiltersExpanded;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CustomAppBar(
+        title: (''),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Tabela de Famílias
+              _buildFamilyList(),
+              const SizedBox(height: 24),
+              
+              // Filtros de Pesquisa
+              _buildFiltersSection(),
+              
+              const SizedBox(height: 20),
+              Footer(), // Rodapé
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddFamilyDialog,
+        child: const Icon(Icons.add),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  Widget _buildFamilyList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Famílias Cadastradas',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          elevation: 5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                // Campo de pesquisa
                 TextField(
                   decoration: InputDecoration(
                     labelText: "Pesquisar responsável...",
@@ -834,31 +909,26 @@ class FamiliesPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
+                  onChanged: (value) {
+                    // Implementar lógica de pesquisa, se necessário
+                  },
                 ),
                 const SizedBox(height: 16),
+
+                // Tabela de dados
                 DataTable(
                   columns: const [
                     DataColumn(label: Text("ID")),
                     DataColumn(label: Text("Nome")),
                     DataColumn(label: Text("CPF")),
                   ],
-                  rows: const [
-                    DataRow(cells: [
-                      DataCell(Text("#FML17")),
-                      DataCell(Text("Luiz")),
-                      DataCell(Text("111.093.679-61")),
-                    ]),
-                    DataRow(cells: [
-                      DataCell(Text("#FML19")),
-                      DataCell(Text("Walter")),
-                      DataCell(Text("111.111.111-67")),
-                    ]),
-                    DataRow(cells: [
-                      DataCell(Text("#FML20")),
-                      DataCell(Text("Caue")),
-                      DataCell(Text("222.222.589-90")),
-                    ]),
-                  ],
+                  rows: _families.map((family) {
+                    return DataRow(cells: [
+                      DataCell(Text(family.id)),
+                      DataCell(Text(family.name)),
+                      DataCell(Text(family.cpf)),
+                    ]);
+                  }).toList(),
                 ),
               ],
             ),
@@ -872,77 +942,123 @@ class FamiliesPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Filtros',
-          style: TextStyle(
-              fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+        InkWell(
+          onTap: _toggleFilterExpansion,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Filtros',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Icon(
+                _isFiltersExpanded ? Icons.expand_less : Icons.expand_more,
+                color: Colors.grey,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
-        Card(
-          elevation: 5,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: "Parentesco",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: "Todos", child: Text("Todos")),
-                          DropdownMenuItem(
-                              value: "Responsável", child: Text("Responsável")),
-                          DropdownMenuItem(value: "Filho", child: Text("Filho")),
-                          DropdownMenuItem(value: "Outro", child: Text("Outro")),
-                        ],
-                        onChanged: (value) {},
+        if (_isFiltersExpanded)
+          Card(
+            elevation: 5,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Parentesco',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  ...parentescoOptions.keys.map((String key) {
+                    return CheckboxListTile(
+                      title: Text(key),
+                      value: parentescoOptions[key],
+                      onChanged: (bool? value) {
+                        setState(() {
+                          parentescoOptions[key] = value ?? false;
+                          if (key == 'Todos' && value == true) {
+                            parentescoOptions.updateAll((k, v) => k == 'Todos' ? true : false);
+                          } else if (key != 'Todos' && value == true) {
+                            parentescoOptions['Todos'] = false;
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Gênero',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: selectedGender,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: "Gênero",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: "Todos", child: Text("Todos")),
-                          DropdownMenuItem(value: "Masculino", child: Text("Masculino")),
-                          DropdownMenuItem(value: "Feminino", child: Text("Feminino")),
-                        ],
-                        onChanged: (value) {},
-                      ),
+                    items: const [
+                      DropdownMenuItem(value: 'Todos', child: Text('Todos')),
+                      DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
+                      DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        selectedGender = value!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Idade',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  RangeSlider(
+                    values: ageRange,
+                    min: 0,
+                    max: 120,
+                    divisions: 12,
+                    labels: RangeLabels(
+                      '${ageRange.start.round()}',
+                      '${ageRange.end.round()}',
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                RangeSlider(
-                  values: RangeValues(5, 95),
-                  min: 0,
-                  max: 120,
-                  labels: RangeLabels('5', '95'),
-                  onChanged: (RangeValues values) {},
-                ),
-              ],
+                    onChanged: (RangeValues values) {
+                      setState(() {
+                        ageRange = values;
+                      });
+                    },
+                    activeColor: Colors.blue,
+                    inactiveColor: Colors.grey.shade300,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
   }
 }
+
+// Classe para representar uma família
+class Family {
+  final String id;
+  final String name;
+  final String cpf;
+
+  Family({required this.id, required this.name, required this.cpf});
+}
+
+
+
+
 class Doacao {
   String id;
   String categoria;
@@ -963,13 +1079,16 @@ class Doacao {
   });
 }
 
+
+
 class DoacoesPage extends StatefulWidget {
   @override
-  _DoacoesScreenState createState() => _DoacoesScreenState();
+  _DoacoesPageState createState() => _DoacoesPageState();
 }
 
-class _DoacoesScreenState extends State<DoacoesPage> {
+class _DoacoesPageState extends State<DoacoesPage> {
   List<Doacao> _doacoes = [];
+  TextEditingController searchController = TextEditingController();
 
   void _adicionarDoacao(Doacao doacao) {
     setState(() {
@@ -989,6 +1108,15 @@ class _DoacoesScreenState extends State<DoacoesPage> {
     });
   }
 
+  void _navegarParaHistorico() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HistoricoDoacoesPage(doacoes: _doacoes),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -998,113 +1126,28 @@ class _DoacoesScreenState extends State<DoacoesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Gerenciador de Doações",
-              style: TextStyle(
-                fontFamily: 'Roboto',
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+            _buildSearchAndActionBar(),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: Icon(Icons.history),
+              label: Text('Ver Histórico de Doações'),
+              onPressed: _navegarParaHistorico,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
               ),
-            ),
-            SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Pesquisar Item...',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: Row(
-                    children: const [
-                      Icon(Icons.filter_list),
-                      Text('Filtro'),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    _mostrarDialogoAdicionarDoacao();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.add),
-                      Text('+ doação'),
-                    ],
-                  ),
-                ),
-              ],
             ),
             const SizedBox(height: 20),
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text('ID')),
-                    DataColumn(label: Text('Categoria')),
-                    DataColumn(label: Text('Item')),
-                    DataColumn(label: Text('Data Criação')),
-                    DataColumn(label: Text('Quantidade')),
-                    DataColumn(label: Text('Unidade')),
-                    DataColumn(label: Text('Entrada/Saída')),
-                    DataColumn(label: Text('Ações')),
-                  ],
-                  rows: _buildDonationRows(),
-                ),
-              ),
-            ),
+            Divider(thickness: 1, color: Colors.grey.shade300),
+            const SizedBox(height: 10),
+            _buildDonationsTable(),
+            const SizedBox(height: 20),
+            Footer(), // Rodapé no final
           ],
         ),
       ),
     );
   }
-
-  List<DataRow> _buildDonationRows() {
-    return List.generate(_doacoes.length, (index) {
-      final doacao = _doacoes[index];
-      return DataRow(cells: [
-        DataCell(Text(doacao.id)),
-        DataCell(Text(doacao.categoria)),
-        DataCell(Text(doacao.item)),
-        DataCell(Text(doacao.dataCriacao)),
-        DataCell(Text(doacao.quantidade.toString())),
-        DataCell(Text(doacao.unidadeMedida)),
-        DataCell(Text(doacao.entradaSaida)),
-        DataCell(
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.edit),
-                onPressed: () {
-                  _mostrarDialogoEditarDoacao(index, doacao);
-                },
-              ),
-              IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () {
-                  _removerDoacao(index);
-                },
-              ),
-            ],
-          ),
-        ),
-      ]);
-    });
-  }
-
+    // Função para mostrar o diálogo de adicionar doação
   void _mostrarDialogoAdicionarDoacao() {
     final _formKey = GlobalKey<FormState>();
     String id = '', categoria = '', item = '', dataCriacao = '';
@@ -1126,23 +1169,28 @@ class _DoacoesScreenState extends State<DoacoesPage> {
                   TextFormField(
                     decoration: InputDecoration(labelText: 'ID'),
                     onSaved: (value) => id = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   TextFormField(
                     decoration: InputDecoration(labelText: 'Categoria'),
                     onSaved: (value) => categoria = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   TextFormField(
                     decoration: InputDecoration(labelText: 'Item'),
                     onSaved: (value) => item = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   TextFormField(
                     decoration: InputDecoration(labelText: 'Data de Criação'),
                     onSaved: (value) => dataCriacao = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   TextFormField(
                     decoration: InputDecoration(labelText: 'Quantidade'),
                     keyboardType: TextInputType.number,
                     onSaved: (value) => quantidade = int.parse(value!),
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   DropdownButtonFormField(
                     decoration: InputDecoration(labelText: 'Unidade de Medida'),
@@ -1201,6 +1249,106 @@ class _DoacoesScreenState extends State<DoacoesPage> {
     );
   }
 
+  Widget _buildSearchAndActionBar() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: searchController,
+            decoration: InputDecoration(
+              labelText: 'Pesquisar Item...',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {}); // Atualize a exibição com base na pesquisa
+            },
+          ),
+        ),
+        const SizedBox(width: 10),
+        ElevatedButton.icon(
+          icon: Icon(Icons.filter_list),
+          label: Text('Filtro'),
+          onPressed: () {
+            // Lógica para filtros adicionais
+          },
+        ),
+        const SizedBox(width: 10),
+        ElevatedButton.icon(
+          icon: Icon(Icons.add),
+          label: Text('Nova Doação'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+          ),
+          onPressed: _mostrarDialogoAdicionarDoacao,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDonationsTable() {
+    return Expanded(
+      child: _doacoes.isEmpty
+          ? Center(
+              child: Text(
+                'Nenhuma doação encontrada.',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            )
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('ID')),
+                  DataColumn(label: Text('Categoria')),
+                  DataColumn(label: Text('Item')),
+                  DataColumn(label: Text('Data Criação')),
+                  DataColumn(label: Text('Quantidade')),
+                  DataColumn(label: Text('Unidade')),
+                  DataColumn(label: Text('Entrada/Saída')),
+                  DataColumn(label: Text('Ações')),
+                ],
+                rows: _buildDonationRows(),
+              ),
+            ),
+    );
+  }
+
+  List<DataRow> _buildDonationRows() {
+    return List.generate(_doacoes.length, (index) {
+      final doacao = _doacoes[index];
+      return DataRow(cells: [
+        DataCell(Text(doacao.id)),
+        DataCell(Text(doacao.categoria)),
+        DataCell(Text(doacao.item)),
+        DataCell(Text(doacao.dataCriacao)),
+        DataCell(Text(doacao.quantidade.toString())),
+        DataCell(Text(doacao.unidadeMedida)),
+        DataCell(Text(doacao.entradaSaida)),
+        DataCell(
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.edit),
+                onPressed: () {
+                  _mostrarDialogoEditarDoacao(index, doacao);
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () {
+                  _removerDoacao(index);
+                },
+              ),
+            ],
+          ),
+        ),
+      ]);
+    });
+  }
+
   void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
     final _formKey = GlobalKey<FormState>();
     String id = doacao.id, categoria = doacao.categoria, item = doacao.item;
@@ -1223,27 +1371,32 @@ class _DoacoesScreenState extends State<DoacoesPage> {
                     initialValue: id,
                     decoration: InputDecoration(labelText: 'ID'),
                     onSaved: (value) => id = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   TextFormField(
                     initialValue: categoria,
                     decoration: InputDecoration(labelText: 'Categoria'),
                     onSaved: (value) => categoria = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   TextFormField(
                     initialValue: item,
                     decoration: InputDecoration(labelText: 'Item'),
                     onSaved: (value) => item = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   TextFormField(
                     initialValue: dataCriacao,
                     decoration: InputDecoration(labelText: 'Data de Criação'),
                     onSaved: (value) => dataCriacao = value!,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   TextFormField(
                     initialValue: quantidade.toString(),
                     decoration: InputDecoration(labelText: 'Quantidade'),
                     keyboardType: TextInputType.number,
                     onSaved: (value) => quantidade = int.parse(value!),
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   DropdownButtonFormField(
                     decoration: InputDecoration(labelText: 'Unidade de Medida'),
@@ -1299,6 +1452,181 @@ class _DoacoesScreenState extends State<DoacoesPage> {
           ],
         );
       },
+    );
+  }
+}
+
+
+// Página de histórico de doações
+class HistoricoDoacoesPage extends StatelessWidget {
+  final List<Doacao> doacoes;
+
+  HistoricoDoacoesPage({required this.doacoes});
+
+  @override
+ Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: CustomAppBar(
+      title: '',
+      
+    ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Botão Voltar
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+              ),
+              child: Text('Voltar'),
+            ),
+            const SizedBox(height: 20),
+            
+            // Dados da Doação
+            Text(
+              'Dados da doação',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              elevation: 5,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Arroz',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.category, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Categoria: Alimento',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.inventory, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Quantidade: 55',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Meta da Doação
+            Text(
+              'Meta da Doação',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              elevation: 5,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Arrecadação Atual',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '55 / 200',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      '27% da meta total',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '20, setembro de 2024',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: 0.27,
+                      backgroundColor: Colors.grey.shade300,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Campo para Configurar Meta
+                    Text(
+                      'Configurar Meta',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Meta',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Data limite',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
