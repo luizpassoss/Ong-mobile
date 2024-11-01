@@ -288,6 +288,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
     );
   }
 }
+
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
 
@@ -327,17 +328,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           title: Text("Pesquisar"),
           content: TextField(
             decoration: InputDecoration(
-              hintText: 'digite...',
+              hintText: 'Digite...',
               border: OutlineInputBorder(),
             ),
             onChanged: (value) {
-              // Add your search logic here
-              print("Searching for: $value");
+              // Adicione a lógica de pesquisa aqui
+              print("Pesquisando por: $value");
             },
           ),
           actions: [
             TextButton(
-              child: Text("fechar"),
+              child: Text("Fechar"),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -345,6 +346,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           ],
         );
       },
+    );
+  }
+
+  void _logout(BuildContext context) {
+    // Redireciona para a tela de login, limpando a pilha de navegação
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginFormPage()),
+      (route) => false,
     );
   }
 
@@ -380,7 +390,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             _showSearchDialog(context);
           },
         ),
-        IconButton(onPressed: () {}, icon: Icon(Icons.logout)),
+        IconButton(
+          icon: Icon(Icons.logout),
+          onPressed: () {
+            _logout(context); // Chama a função de logout
+          },
+        ),
       ],
       iconTheme: IconThemeData(color: Colors.white),
     );
@@ -389,7 +404,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
-//pagina dashboard
 
 
 class DashboardPage extends StatelessWidget {
@@ -478,17 +492,6 @@ class DashboardPage extends StatelessWidget {
               _buildRecentes(),
 
               const SizedBox(height: 24),
-
-              // Navegar para FamiliesPage
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => FamiliesPage()),
-                  );
-                },
-                child: Text("Ver Famílias e Filtros"),
-              ),
             ],
           ),
         ),
@@ -946,6 +949,7 @@ class Doacao {
   String item;
   String dataCriacao;
   int quantidade;
+  String unidadeMedida;
   String entradaSaida;
 
   Doacao({
@@ -954,6 +958,7 @@ class Doacao {
     required this.item,
     required this.dataCriacao,
     required this.quantidade,
+    required this.unidadeMedida,
     required this.entradaSaida,
   });
 }
@@ -964,24 +969,20 @@ class DoacoesPage extends StatefulWidget {
 }
 
 class _DoacoesScreenState extends State<DoacoesPage> {
-  // Lista de doações
   List<Doacao> _doacoes = [];
 
-  // Função para adicionar uma doação
   void _adicionarDoacao(Doacao doacao) {
     setState(() {
       _doacoes.add(doacao);
     });
   }
 
-  // Função para editar uma doação
   void _editarDoacao(int index, Doacao novaDoacao) {
     setState(() {
       _doacoes[index] = novaDoacao;
     });
   }
 
-  // Função para remover uma doação
   void _removerDoacao(int index) {
     setState(() {
       _doacoes.removeAt(index);
@@ -997,18 +998,17 @@ class _DoacoesScreenState extends State<DoacoesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-                Text(
-                "Gerenciador de Doações",
-                style: TextStyle(
-                  fontFamily: 'Roboto',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+            Text(
+              "Gerenciador de Doações",
+              style: TextStyle(
+                fontFamily: 'Roboto',
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
-              SizedBox(height: 20),
+            ),
+            SizedBox(height: 20),
             Row(
               children: [
-                
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
@@ -1022,9 +1022,7 @@ class _DoacoesScreenState extends State<DoacoesPage> {
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
-                  onPressed: () {
-                    // Função de filtro (pode ser adicionada aqui)
-                  },
+                  onPressed: () {},
                   child: Row(
                     children: const [
                       Icon(Icons.filter_list),
@@ -1050,7 +1048,6 @@ class _DoacoesScreenState extends State<DoacoesPage> {
               ],
             ),
             const SizedBox(height: 20),
-            // Tabela de doações
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -1060,7 +1057,8 @@ class _DoacoesScreenState extends State<DoacoesPage> {
                     DataColumn(label: Text('Categoria')),
                     DataColumn(label: Text('Item')),
                     DataColumn(label: Text('Data Criação')),
-                    DataColumn(label: Text('Quantidade Atual')),
+                    DataColumn(label: Text('Quantidade')),
+                    DataColumn(label: Text('Unidade')),
                     DataColumn(label: Text('Entrada/Saída')),
                     DataColumn(label: Text('Ações')),
                   ],
@@ -1074,7 +1072,6 @@ class _DoacoesScreenState extends State<DoacoesPage> {
     );
   }
 
-  // Função para construir as linhas da tabela de doações
   List<DataRow> _buildDonationRows() {
     return List.generate(_doacoes.length, (index) {
       final doacao = _doacoes[index];
@@ -1084,6 +1081,7 @@ class _DoacoesScreenState extends State<DoacoesPage> {
         DataCell(Text(doacao.item)),
         DataCell(Text(doacao.dataCriacao)),
         DataCell(Text(doacao.quantidade.toString())),
+        DataCell(Text(doacao.unidadeMedida)),
         DataCell(Text(doacao.entradaSaida)),
         DataCell(
           Row(
@@ -1107,11 +1105,11 @@ class _DoacoesScreenState extends State<DoacoesPage> {
     });
   }
 
-  // Função para exibir o diálogo de adicionar doação
   void _mostrarDialogoAdicionarDoacao() {
     final _formKey = GlobalKey<FormState>();
     String id = '', categoria = '', item = '', dataCriacao = '';
     int quantidade = 0;
+    String unidadeMedida = 'Unidade';
     String entradaSaida = 'Entrada';
 
     showDialog(
@@ -1119,44 +1117,57 @@ class _DoacoesScreenState extends State<DoacoesPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Adicionar Doação'),
-          content: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'ID'),
-                  onSaved: (value) => id = value!,
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Categoria'),
-                  onSaved: (value) => categoria = value!,
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Item'),
-                  onSaved: (value) => item = value!,
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Data de Criação'),
-                  onSaved: (value) => dataCriacao = value!,
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Quantidade'),
-                  keyboardType: TextInputType.number,
-                  onSaved: (value) => quantidade = int.parse(value!),
-                ),
-                DropdownButtonFormField(
-                  decoration: InputDecoration(labelText: 'Entrada/Saída'),
-                  value: entradaSaida,
-                  items: ['Entrada', 'Saída'].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) => entradaSaida = newValue as String,
-                ),
-              ],
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'ID'),
+                    onSaved: (value) => id = value!,
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Categoria'),
+                    onSaved: (value) => categoria = value!,
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Item'),
+                    onSaved: (value) => item = value!,
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Data de Criação'),
+                    onSaved: (value) => dataCriacao = value!,
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Quantidade'),
+                    keyboardType: TextInputType.number,
+                    onSaved: (value) => quantidade = int.parse(value!),
+                  ),
+                  DropdownButtonFormField(
+                    decoration: InputDecoration(labelText: 'Unidade de Medida'),
+                    value: unidadeMedida,
+                    items: ['Unidade', 'Kilo'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) => unidadeMedida = newValue as String,
+                  ),
+                  DropdownButtonFormField(
+                    decoration: InputDecoration(labelText: 'Entrada/Saída'),
+                    value: entradaSaida,
+                    items: ['Entrada', 'Saída'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) => entradaSaida = newValue as String,
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -1176,6 +1187,7 @@ class _DoacoesScreenState extends State<DoacoesPage> {
                     item: item,
                     dataCriacao: dataCriacao,
                     quantidade: quantidade,
+                    unidadeMedida: unidadeMedida,
                     entradaSaida: entradaSaida,
                   ));
                   Navigator.pop(context);
@@ -1189,61 +1201,74 @@ class _DoacoesScreenState extends State<DoacoesPage> {
     );
   }
 
-  // Função para exibir o diálogo de edição de doação
   void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
     final _formKey = GlobalKey<FormState>();
     String id = doacao.id, categoria = doacao.categoria, item = doacao.item;
     String dataCriacao = doacao.dataCriacao, entradaSaida = doacao.entradaSaida;
     int quantidade = doacao.quantidade;
+    String unidadeMedida = doacao.unidadeMedida;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Editar Doação'),
-          content: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  initialValue: id,
-                  decoration: InputDecoration(labelText: 'ID'),
-                  onSaved: (value) => id = value!,
-                ),
-                TextFormField(
-                  initialValue: categoria,
-                  decoration: InputDecoration(labelText: 'Categoria'),
-                  onSaved: (value) => categoria = value!,
-                ),
-                TextFormField(
-                  initialValue: item,
-                  decoration: InputDecoration(labelText: 'Item'),
-                  onSaved: (value) => item = value!,
-                ),
-                TextFormField(
-                  initialValue: dataCriacao,
-                  decoration: InputDecoration(labelText: 'Data de Criação'),
-                  onSaved: (value) => dataCriacao = value!,
-                ),
-                TextFormField(
-                  initialValue: quantidade.toString(),
-                  decoration: InputDecoration(labelText: 'Quantidade'),
-                  keyboardType: TextInputType.number,
-                  onSaved: (value) => quantidade = int.parse(value!),
-                ),
-                DropdownButtonFormField(
-                  decoration: InputDecoration(labelText: 'Entrada/Saída'),
-                  value: entradaSaida,
-                  items: ['Entrada', 'Saída'].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) => entradaSaida = newValue as String,
-                ),
-              ],
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    initialValue: id,
+                    decoration: InputDecoration(labelText: 'ID'),
+                    onSaved: (value) => id = value!,
+                  ),
+                  TextFormField(
+                    initialValue: categoria,
+                    decoration: InputDecoration(labelText: 'Categoria'),
+                    onSaved: (value) => categoria = value!,
+                  ),
+                  TextFormField(
+                    initialValue: item,
+                    decoration: InputDecoration(labelText: 'Item'),
+                    onSaved: (value) => item = value!,
+                  ),
+                  TextFormField(
+                    initialValue: dataCriacao,
+                    decoration: InputDecoration(labelText: 'Data de Criação'),
+                    onSaved: (value) => dataCriacao = value!,
+                  ),
+                  TextFormField(
+                    initialValue: quantidade.toString(),
+                    decoration: InputDecoration(labelText: 'Quantidade'),
+                    keyboardType: TextInputType.number,
+                    onSaved: (value) => quantidade = int.parse(value!),
+                  ),
+                  DropdownButtonFormField(
+                    decoration: InputDecoration(labelText: 'Unidade de Medida'),
+                    value: unidadeMedida,
+                    items: ['Unidade', 'Kilo'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) => unidadeMedida = newValue as String,
+                  ),
+                  DropdownButtonFormField(
+                    decoration: InputDecoration(labelText: 'Entrada/Saída'),
+                    value: entradaSaida,
+                    items: ['Entrada', 'Saída'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) => entradaSaida = newValue as String,
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -1263,6 +1288,7 @@ class _DoacoesScreenState extends State<DoacoesPage> {
                     item: item,
                     dataCriacao: dataCriacao,
                     quantidade: quantidade,
+                    unidadeMedida: unidadeMedida,
                     entradaSaida: entradaSaida,
                   ));
                   Navigator.pop(context);
