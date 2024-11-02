@@ -1425,8 +1425,10 @@ class _DoacoesPageState extends State<DoacoesPage> {
             _buildSearchAndActionBar(),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              icon: Icon(Icons.history),
-              label: Text('Ver Histórico de Doações'),
+              icon: Icon(Icons.history,
+              color: Colors.white,),
+              label: Text(
+                'Ver Histórico de Doações',style:TextStyle(color: Colors.white) ,),
               onPressed: _navegarParaHistorico,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
@@ -1652,7 +1654,8 @@ class HistoricoDoacoesPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
               ),
-              child: Text('Voltar'),
+              child: Text('Voltar',
+              style: TextStyle(color: Colors.white)),
             ),
             const SizedBox(height: 20),
             
