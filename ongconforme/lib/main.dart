@@ -24,6 +24,8 @@ class MyApp extends StatelessWidget {
 }
 
 class LoginFormPage extends StatefulWidget {
+  const LoginFormPage({super.key});
+
   @override
   _LoginFormPageState createState() => _LoginFormPageState();
 }
@@ -291,6 +293,8 @@ class _LoginFormPageState extends State<LoginFormPage> {
   }
 }
 class Footer extends StatelessWidget {
+  const Footer({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -309,7 +313,7 @@ class Footer extends StatelessWidget {
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
 
-  CustomAppBar({required this.title});
+  const CustomAppBar({super.key, required this.title});
 
   void _navigateToPage(BuildContext context, String page) {
     switch (page) {
@@ -441,6 +445,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 
 class DashboardPage extends StatelessWidget {
+  const DashboardPage({super.key});
+
   Future<void> _obterToken() async {
     final prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('tokenJWT');
@@ -766,6 +772,8 @@ class DashboardPage extends StatelessWidget {
 
 
 class FamiliesPage extends StatefulWidget {
+  const FamiliesPage({super.key});
+
   @override
   _FamiliesPageState createState() => _FamiliesPageState();
 }
@@ -794,14 +802,14 @@ class _FamiliesPageState extends State<FamiliesPage> {
   // Função para mostrar o diálogo de cadastro de família
   void _showAddFamilyDialog() {
     String id = '', name = '', cpf = '';
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cadastro de Família'),
         content: Form(
-          key: _formKey,
+          key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -830,8 +838,8 @@ class _FamiliesPageState extends State<FamiliesPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                _formKey.currentState!.save();
+              if (formKey.currentState!.validate()) {
+                formKey.currentState!.save();
                 _addFamily(Family(id: id, name: name, cpf: cpf));
                 Navigator.of(context).pop();
               }
@@ -1060,48 +1068,52 @@ class Family {
 
 
 class Doacao {
-  String id;
+  int id;
   String categoria;
-  String item;
-  String dataCriacao;
+  String itemName;
+  String dataCreated;
   int quantidade;
-  String unidadeMedida;
-  String entradaSaida;
+  int metaQuantidade;
+  String metaDate;
 
   Doacao({
     required this.id,
     required this.categoria,
-    required this.item,
-    required this.dataCriacao,
+    required this.itemName,
+    required this.dataCreated,
     required this.quantidade,
-    required this.unidadeMedida,
-    required this.entradaSaida,
+    required this.metaQuantidade,
+    required this.metaDate,
   });
 
-  factory Doacao.fromJson(Map<String, dynamic> json) {
-    return Doacao(
-      id: json['id'],
-      categoria: json['categoria'],
-      item: json['item'],
-      dataCriacao: json['dataCriacao'],
-      quantidade: json['quantidade'],
-      unidadeMedida: json['unidadeMedida'],
-      entradaSaida: json['entradaSaida'],
-    );
-  }
+ factory Doacao.fromJson(Map<String, dynamic> json) {
+  return Doacao(
+    id: json['id'] ?? 0,  // Define um valor padrão se `id` for `null`
+    categoria: json['categoria'] ?? 'Desconhecido',
+    itemName: json['itemName'] ?? 'Desconhecido',
+    dataCreated: json['dataCreated'] ?? 'Data Desconhecida',
+    quantidade: json['qntd'] ?? 0,
+    metaQuantidade: json['metaQntd'] ?? 0,
+    metaDate: json['metaDate'] ?? 'Data Meta Desconhecida',
+  );
+}
+ 
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'categoria': categoria,
-        'item': item,
-        'dataCriacao': dataCriacao,
-        'quantidade': quantidade,
-        'unidadeMedida': unidadeMedida,
-        'entradaSaida': entradaSaida,
+        'itemName': itemName,
+        'dataCreated': dataCreated,
+        'qntd': quantidade,
+        'metaQntd': metaQuantidade,
+        'metaDate': metaDate,
       };
 }
 
+
 class DoacoesPage extends StatefulWidget {
+  const DoacoesPage({super.key});
+
   @override
   _DoacoesPageState createState() => _DoacoesPageState();
 }
@@ -1216,6 +1228,7 @@ class _DoacoesPageState extends State<DoacoesPage> {
         throw Exception('Erro ao editar doação');
       }
     } catch (e) {
+      // ignore: avoid_print
       print('Erro ao editar doação: $e');
     }
   }
@@ -1241,6 +1254,7 @@ class _DoacoesPageState extends State<DoacoesPage> {
         throw Exception('Erro ao atualizar quantidade');
       }
     } catch (e) {
+      // ignore: avoid_print
       print('Erro ao atualizar quantidade: $e');
     }
   }
@@ -1266,6 +1280,7 @@ class _DoacoesPageState extends State<DoacoesPage> {
         throw Exception('Erro ao atualizar meta');
       }
     } catch (e) {
+      // ignore: avoid_print
       print('Erro ao atualizar meta: $e');
     }
   }
@@ -1293,6 +1308,7 @@ class _DoacoesPageState extends State<DoacoesPage> {
         throw Exception('Erro ao remover doação');
       }
     } catch (e) {
+      // ignore: avoid_print
       print('Erro ao remover doação: $e');
     }
   }
@@ -1306,118 +1322,124 @@ class _DoacoesPageState extends State<DoacoesPage> {
     );
   }
     void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
-    final _formKey = GlobalKey<FormState>();
-    String id = doacao.id;
+    final formKey = GlobalKey<FormState>();
+    int id = doacao.id;
     String categoria = doacao.categoria;
-    String item = doacao.item;
-    String dataCriacao = doacao.dataCriacao;
+    String itemName = doacao.itemName;
+    String dataCreated = doacao.dataCreated;
     int quantidade = doacao.quantidade;
-    String unidadeMedida = doacao.unidadeMedida;
-    String entradaSaida = doacao.entradaSaida;
+    int metaQuantidade = doacao.metaQuantidade;
+    String metaDate = doacao.metaDate;
 
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Editar Doação'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    initialValue: id,
-                    decoration: InputDecoration(labelText: 'ID'),
-                    onSaved: (value) => id = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    initialValue: categoria,
-                    decoration: InputDecoration(labelText: 'Categoria'),
-                    onSaved: (value) => categoria = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    initialValue: item,
-                    decoration: InputDecoration(labelText: 'Item'),
-                    onSaved: (value) => item = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    initialValue: dataCriacao,
-                    decoration: InputDecoration(labelText: 'Data de Criação'),
-                    onSaved: (value) => dataCriacao = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    initialValue: quantidade.toString(),
-                    decoration: InputDecoration(labelText: 'Quantidade'),
-                    keyboardType: TextInputType.number,
-                    onSaved: (value) => quantidade = int.parse(value!),
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  DropdownButtonFormField(
-                    decoration: InputDecoration(labelText: 'Unidade de Medida'),
-                    value: unidadeMedida,
-                    items: ['Unidade', 'Kilo'].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) => unidadeMedida = newValue as String,
-                  ),
-                  DropdownButtonFormField(
-                    decoration: InputDecoration(labelText: 'Entrada/Saída'),
-                    value: entradaSaida,
-                    items: ['Entrada', 'Saída'].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) => entradaSaida = newValue as String,
-                  ),
-                ],
+  context: context,
+  builder: (BuildContext context) {
+    return AlertDialog(
+      title: Text('Editar Doação'),
+      content: SingleChildScrollView(
+        child: Form(
+          key: formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                initialValue: id.toString(), // Convertendo ID para String
+                decoration: InputDecoration(labelText: 'ID'),
+                onSaved: (value) => id = int.parse(value!), // Convertendo para int
+                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
               ),
-            ),
+              TextFormField(
+                initialValue: categoria,
+                decoration: InputDecoration(labelText: 'Categoria'),
+                onSaved: (value) => categoria = value!,
+                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+              TextFormField(
+                initialValue: itemName, // Atualizando para 'itemName'
+                decoration: InputDecoration(labelText: 'Item'),
+                onSaved: (value) => itemName = value!,
+                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+              TextFormField(
+                initialValue: dataCreated, // Atualizando para 'dataCreated'
+                decoration: InputDecoration(labelText: 'Data de Criação'),
+                onSaved: (value) => dataCreated = value!,
+                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+              TextFormField(
+                initialValue: quantidade.toString(), // Convertendo para string
+                decoration: InputDecoration(labelText: 'Quantidade'),
+                keyboardType: TextInputType.number,
+                onSaved: (value) => quantidade = int.parse(value!), // Convertendo para int
+                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+             TextFormField(
+  initialValue: quantidade.toString(),
+  decoration: InputDecoration(labelText: 'Quantidade'),
+  keyboardType: TextInputType.number,
+  onSaved: (value) {
+    if (value != null && value.isNotEmpty) {
+      quantidade = int.parse(value);
+    } else {
+      quantidade = 0; // valor padrão
+    }
+  },
+  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+),
+TextFormField(
+  initialValue: metaQuantidade.toString(),
+  decoration: InputDecoration(labelText: 'Meta Quantidade'),
+  keyboardType: TextInputType.number,
+  onSaved: (value) {
+    if (value != null && value.isNotEmpty) {
+      metaQuantidade = int.parse(value);
+    } else {
+      metaQuantidade = 0; // valor padrão
+    }
+  },
+  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  final novaDoacao = Doacao(
-                    id: id,
-                    categoria: categoria,
-                    item: item,
-                    dataCriacao: dataCriacao,
-                    quantidade: quantidade,
-                    unidadeMedida: unidadeMedida,
-                    entradaSaida: entradaSaida,
-                  );
-                  editarDoacao(index, novaDoacao); // Chama a função de edição
-                  Navigator.pop(context);
-                }
-              },
-              child: Text('Salvar'),
-            ),
-          ],
-        );
-      },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (formKey.currentState!.validate()) {
+              formKey.currentState!.save();
+              final novaDoacao = Doacao(
+                id: id,
+                categoria: categoria,
+                itemName: itemName,
+                dataCreated: dataCreated,
+                quantidade: quantidade,
+                metaQuantidade: metaQuantidade, // Adicionando metaQuantidade
+                metaDate: metaDate, // Adicionando metaDate
+              );
+              editarDoacao(index, novaDoacao); // Chama a função de edição
+              Navigator.pop(context);
+            }
+          },
+          child: Text('Salvar'),
+        ),
+      ],
     );
-  }
+  },
+);
+}
+
 
 
  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(title: ''),
-      body: Padding(
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: CustomAppBar(title: ''),
+    body: SingleChildScrollView( // Adicione SingleChildScrollView aqui
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1425,10 +1447,11 @@ class _DoacoesPageState extends State<DoacoesPage> {
             _buildSearchAndActionBar(),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              icon: Icon(Icons.history,
-              color: Colors.white,),
+              icon: Icon(Icons.history, color: Colors.white),
               label: Text(
-                'Ver Histórico de Doações',style:TextStyle(color: Colors.white) ,),
+                'Ver Histórico de Doações',
+                style: TextStyle(color: Colors.white),
+              ),
               onPressed: _navegarParaHistorico,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
@@ -1443,8 +1466,11 @@ class _DoacoesPageState extends State<DoacoesPage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+  
+  
 
   Widget _buildDonationsTable() {
     return _doacoes.isEmpty
@@ -1463,26 +1489,27 @@ class _DoacoesPageState extends State<DoacoesPage> {
                 DataColumn(label: Text('Item')),
                 DataColumn(label: Text('Data Criação')),
                 DataColumn(label: Text('Quantidade')),
-                DataColumn(label: Text('Unidade')),
-                DataColumn(label: Text('Entrada/Saída')),
+                DataColumn(label: Text('Meta Quantidade')),
+                DataColumn(label: Text('Data Meta')),
                 DataColumn(label: Text('Ações')),
               ],
               rows: _buildDonationRows(),
             ),
           );
   }
+    
 
   List<DataRow> _buildDonationRows() {
     return List.generate(_doacoes.length, (index) {
       final doacao = _doacoes[index];
       return DataRow(cells: [
-        DataCell(Text(doacao.id)),
+        DataCell(Text(doacao.id.toString())),
         DataCell(Text(doacao.categoria)),
-        DataCell(Text(doacao.item)),
-        DataCell(Text(doacao.dataCriacao)),
+        DataCell(Text(doacao.itemName)),
+        DataCell(Text(doacao.dataCreated)),
         DataCell(Text(doacao.quantidade.toString())),
-        DataCell(Text(doacao.unidadeMedida)),
-        DataCell(Text(doacao.entradaSaida)),
+        DataCell(Text(doacao.metaQuantidade.toString())),
+        DataCell(Text(doacao.metaDate)),
         DataCell(
           Row(
             children: [
@@ -1527,14 +1554,12 @@ class _DoacoesPageState extends State<DoacoesPage> {
       ],
     );
   }
-
+    
 
   void _mostrarDialogoAdicionarDoacao() {
-    final _formKey = GlobalKey<FormState>();
-    String id = '', categoria = '', item = '', dataCriacao = '';
-    int quantidade = 0;
-    String unidadeMedida = 'Unidade';
-    String entradaSaida = 'Entrada';
+    final formKey = GlobalKey<FormState>();
+    String categoria = '', itemName = '', dataCreated = '', metaDate = '';
+    int quantidade = 0, metaQuantidade = 0;
 
     showDialog(
       context: context,
@@ -1543,14 +1568,9 @@ class _DoacoesPageState extends State<DoacoesPage> {
           title: Text('Adicionar Doação'),
           content: SingleChildScrollView(
             child: Form(
-              key: _formKey,
+              key: formKey,
               child: Column(
                 children: [
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'ID'),
-                    onSaved: (value) => id = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
                   TextFormField(
                     decoration: InputDecoration(labelText: 'Categoria'),
                     onSaved: (value) => categoria = value!,
@@ -1558,41 +1578,43 @@ class _DoacoesPageState extends State<DoacoesPage> {
                   ),
                   TextFormField(
                     decoration: InputDecoration(labelText: 'Item'),
-                    onSaved: (value) => item = value!,
+                    onSaved: (value) => itemName = value!,
                     validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
                   TextFormField(
                     decoration: InputDecoration(labelText: 'Data de Criação'),
-                    onSaved: (value) => dataCriacao = value!,
+                    onSaved: (value) => dataCreated = value!,
                     validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
+                 TextFormField(
+  decoration: InputDecoration(labelText: 'Quantidade'),
+  keyboardType: TextInputType.number,
+  onSaved: (value) {
+    if (value != null && value.isNotEmpty) {
+      quantidade = int.parse(value);
+    } else {
+      quantidade = 0; // valor padrão
+    }
+  },
+  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+),
+TextFormField(
+  decoration: InputDecoration(labelText: 'Meta Quantidade'),
+  keyboardType: TextInputType.number,
+  onSaved: (value) {
+    if (value != null && value.isNotEmpty) {
+      metaQuantidade = int.parse(value);
+    } else {
+      metaQuantidade = 0; // valor padrão
+    }
+  },
+  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+),
+
                   TextFormField(
-                    decoration: InputDecoration(labelText: 'Quantidade'),
-                    keyboardType: TextInputType.number,
-                    onSaved: (value) => quantidade = int.parse(value!),
+                    decoration: InputDecoration(labelText: 'Data Meta'),
+                    onSaved: (value) => metaDate = value!,
                     validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  DropdownButtonFormField(
-                    decoration: InputDecoration(labelText: 'Unidade de Medida'),
-                    value: unidadeMedida,
-                    items: ['Unidade', 'Kilo'].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) => unidadeMedida = newValue as String,
-                  ),
-                  DropdownButtonFormField(
-                    decoration: InputDecoration(labelText: 'Entrada/Saída'),
-                    value: entradaSaida,
-                    items: ['Entrada', 'Saída'].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) => entradaSaida = newValue as String,
                   ),
                 ],
               ),
@@ -1605,16 +1627,16 @@ class _DoacoesPageState extends State<DoacoesPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
+                if (formKey.currentState!.validate()) {
+                  formKey.currentState!.save();
                   adicionarDoacao(Doacao(
-                    id: id,
+                    id: _doacoes.length + 1,
                     categoria: categoria,
-                    item: item,
-                    dataCriacao: dataCriacao,
+                    itemName: itemName,
+                    dataCreated: dataCreated,
                     quantidade: quantidade,
-                    unidadeMedida: unidadeMedida,
-                    entradaSaida: entradaSaida,
+                    metaQuantidade: metaQuantidade,
+                    metaDate: metaDate,
                   ));
                   Navigator.pop(context);
                 }
@@ -1629,12 +1651,11 @@ class _DoacoesPageState extends State<DoacoesPage> {
 }
 
 
-
 // Página de histórico de doações
 class HistoricoDoacoesPage extends StatelessWidget {
   final List<Doacao> doacoes;
 
-  HistoricoDoacoesPage({required this.doacoes});
+  const HistoricoDoacoesPage({super.key, required this.doacoes});
 
   @override
  Widget build(BuildContext context) {
