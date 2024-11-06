@@ -35,14 +35,31 @@ class _LoginFormPageState extends State<LoginFormPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final String apiUrl = 'https://backend-ong.vercel.app/api/loginUser';
-  bool isLoading = false; // Adiciona o estado isLoading
+  bool isLoading = false;
+  bool manterConectado = false; // Estado para o checkbox "Manter Conectado"
+
+  @override
+  void initState() {
+    super.initState();
+    _verificarEstadoLogin(); // Verifica se o usuário deve ser mantido conectado
+  }
 
   @override
   void dispose() {
-    // Certifique-se de descartar os controladores ao fechar o widget
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  // Verifica se o usuário está conectado e mantém o estado de login
+  Future<void> _verificarEstadoLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final manterConectado = prefs.getBool('manterConectado') ?? false;
+    final token = prefs.getString('tokenJWT');
+    
+    if (manterConectado && token != null) {
+      _navegarParaDashboard(); // Navega direto para o Dashboard se o token existir e "Manter Conectado" estiver ativado
+    }
   }
 
   Future<void> _validarLogin(String email, String senha) async {
@@ -51,8 +68,6 @@ class _LoginFormPageState extends State<LoginFormPage> {
     });
 
     try {
-      print('Enviando requisição para API com email: $email e senha: $senha');
-
       final body = jsonEncode({
         "email": email,
         "password": senha,
@@ -64,17 +79,13 @@ class _LoginFormPageState extends State<LoginFormPage> {
         body: body,
       );
 
-      print('Status da resposta: ${response.statusCode}');
-      print('Resposta da API: ${response.body}');
-
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
 
         if (data['token'] != null) {
           String tokenJWT = data['token'];
-          print('Token JWT recebido: $tokenJWT');
           await _salvarToken(tokenJWT);
-          _mostrarToken(tokenJWT);
+          _navegarParaDashboard();
         } else {
           _mostrarErro('Token JWT não encontrado.');
         }
@@ -90,34 +101,11 @@ class _LoginFormPageState extends State<LoginFormPage> {
     }
   }
 
+  // Salva o token e a opção "Manter Conectado" em SharedPreferences
   Future<void> _salvarToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('tokenJWT', token);
-  }
-
-  void _mostrarToken(String token) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Token JWT'),
-        content: Text(token),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    ).then((_) {
-      Future.delayed(Duration(milliseconds: 500), () {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => DashboardPage()),
-        );
-      });
-    });
+    await prefs.setBool('manterConectado', manterConectado); // Salva o estado do checkbox
   }
 
   void _mostrarErro(String mensagem) {
@@ -138,6 +126,13 @@ class _LoginFormPageState extends State<LoginFormPage> {
     );
   }
 
+  void _navegarParaDashboard() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => DashboardPage()),
+    );
+  }
+
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       await _validarLogin(
@@ -153,7 +148,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
       backgroundColor: Color.fromRGBO(255, 255, 255, 1),
       body: Column(
         children: [
-          // Seção da Imagem
+          // Seção da Imagem de Fundo
           Expanded(
             flex: 2,
             child: Container(
@@ -164,7 +159,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
               ),
             ),
           ),
-          
+
           // Seção do Formulário de Login
           Expanded(
             flex: 2,
@@ -177,25 +172,18 @@ class _LoginFormPageState extends State<LoginFormPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Logo e Switch para tema
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              SizedBox(width: 5),
-                              Text(
-                                'Conforme Instituto',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                          Image.asset(
+                            'assets/images/ongconformelogo.png', // Caminho da imagem
+                            height: 60, // Altura da logo
                           ),
                           Switch(
                             value: true,
                             onChanged: (val) {
-                              // Função de troca de tema ou outra função
+                              // Lógica para troca de tema ou outra função
                             },
                           ),
                         ],
@@ -260,9 +248,11 @@ class _LoginFormPageState extends State<LoginFormPage> {
                       Row(
                         children: [
                           Checkbox(
-                            value: true,
+                            value: manterConectado,
                             onChanged: (val) {
-                              // Lógica para manter o usuário conectado
+                              setState(() {
+                                manterConectado = val!;
+                              });
                             },
                           ),
                           Text('Manter conectado'),
@@ -279,8 +269,17 @@ class _LoginFormPageState extends State<LoginFormPage> {
                                 backgroundColor: Colors.blue,
                                 minimumSize: const Size(double.infinity, 50),
                               ),
-                              child: const Text('Entrar'),
+                              child: const Text('Entrar', style: TextStyle(color: Colors.white)),
                             ),
+                      SizedBox(height: 15),
+
+                      // Footer
+                      Center(
+                        child: Text(
+                          '© 2024 Ong Conforme',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1109,8 +1108,6 @@ class Doacao {
         'metaDate': metaDate,
       };
 }
-
-
 class DoacoesPage extends StatefulWidget {
   const DoacoesPage({super.key});
 
@@ -1120,18 +1117,34 @@ class DoacoesPage extends StatefulWidget {
 
 class _DoacoesPageState extends State<DoacoesPage> {
   List<Doacao> _doacoes = [];
+  List<Doacao> _doacoesFiltradas = []; // Lista de doações filtradas
+  String _termoPesquisa = ''; // Termo de pesquisa
+  String? _categoriaSelecionada; // Categoria selecionada para o filtro
 
   @override
   void initState() {
     super.initState();
     buscarDoacoes(); // Carrega as doações ao iniciar a página
   }
+  
+void _filtrarDoacoes() {
+  setState(() {
+    _doacoesFiltradas = _doacoes.where((doacao) {
+      final matchCategoria = _categoriaSelecionada == null || doacao.categoria == _categoriaSelecionada;
+      final matchPesquisa = _termoPesquisa.isEmpty || doacao.itemName.toLowerCase().contains(_termoPesquisa.toLowerCase());
+      return matchCategoria && matchPesquisa;
+    }).toList();
+  });
+}
 
-  // Função para buscar todas as doações
+
+  
+  // Função para buscar todas as doações (modifique para carregar dados reais)
   Future<void> buscarDoacoes() async {
+    // Aqui você carregaria as doações da API e preencheria a lista _doacoes
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
-
+    
     try {
       final response = await http.get(
         Uri.parse('https://backend-ong.vercel.app/api/getDoacao'),
@@ -1145,6 +1158,7 @@ class _DoacoesPageState extends State<DoacoesPage> {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
           _doacoes = data.map((json) => Doacao.fromJson(json)).toList();
+          _doacoesFiltradas = _doacoes; // Inicializa a lista filtrada
         });
       } else {
         throw Exception('Erro ao buscar doações');
@@ -1206,58 +1220,41 @@ class _DoacoesPageState extends State<DoacoesPage> {
   }
 
   // Função para editar uma doação existente
-  Future<void> editarDoacao(int index, Doacao doacao) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
+Future<void> editarDoacao(int index, Doacao doacao) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
 
-    try {
-      final response = await http.put(
-        Uri.parse('https://backend-ong.vercel.app/api/updateDoacao/${doacao.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(doacao.toJson()),
-      );
+  try {
+    // Cria um mapa com os dados necessários
+    final Map<String, dynamic> dadosEditar = {
+      'id': doacao.id,
+      'categoria': doacao.categoria,
+      'itemName': doacao.itemName,
+    };
 
-      if (response.statusCode == 200) {
-        setState(() {
-          _doacoes[index] = doacao;
-        });
-      } else {
-        throw Exception('Erro ao editar doação');
-      }
-    } catch (e) {
-      // ignore: avoid_print
-      print('Erro ao editar doação: $e');
+    final response = await http.put(
+      Uri.parse('https://backend-ong.vercel.app/api/updateDoacao/${doacao.id}'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(dadosEditar), // Envia apenas os dados solicitados
+    );
+
+    if (response.statusCode == 200) {
+      setState(() {
+        _doacoes[index] = doacao;
+      });
+    } else {
+      // Exibe status e corpo da resposta para diagnóstico detalhado
+      debugPrint('Erro ao editar doação: ${response.statusCode} - ${response.body}');
+      throw Exception('Erro ao editar doação');
     }
+  } catch (e) {
+    print('Erro ao editar doação: $e');
   }
+}
 
-  // Função para atualizar a quantidade em uma doação
-  Future<void> atualizarQuantidade(String id, int novaQuantidade) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
-
-    try {
-      final response = await http.patch(
-        Uri.parse('https://backend-ong.vercel.app/api/updateQntdInDoacao/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({'quantidade': novaQuantidade}),
-      );
-
-      if (response.statusCode == 200) {
-        buscarDoacoes();
-      } else {
-        throw Exception('Erro ao atualizar quantidade');
-      }
-    } catch (e) {
-      // ignore: avoid_print
-      print('Erro ao atualizar quantidade: $e');
-    }
-  }
 
   // Função para atualizar a meta de uma doação
   Future<void> atualizarMeta(String id, int novaMeta) async {
@@ -1313,132 +1310,124 @@ class _DoacoesPageState extends State<DoacoesPage> {
     }
   }
     // Função para exibir o histórico de doações
-  void _navegarParaHistorico() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HistoricoDoacoesPage(doacoes: _doacoes),
-      ),
-    );
-  }
-    void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
-    final formKey = GlobalKey<FormState>();
-    int id = doacao.id;
-    String categoria = doacao.categoria;
-    String itemName = doacao.itemName;
-    String dataCreated = doacao.dataCreated;
-    int quantidade = doacao.quantidade;
-    int metaQuantidade = doacao.metaQuantidade;
-    String metaDate = doacao.metaDate;
 
-    showDialog(
-  context: context,
-  builder: (BuildContext context) {
-    return AlertDialog(
-      title: Text('Editar Doação'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                initialValue: id.toString(), // Convertendo ID para String
-                decoration: InputDecoration(labelText: 'ID'),
-                onSaved: (value) => id = int.parse(value!), // Convertendo para int
-                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-              ),
-              TextFormField(
-                initialValue: categoria,
-                decoration: InputDecoration(labelText: 'Categoria'),
-                onSaved: (value) => categoria = value!,
-                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-              ),
-              TextFormField(
-                initialValue: itemName, // Atualizando para 'itemName'
-                decoration: InputDecoration(labelText: 'Item'),
-                onSaved: (value) => itemName = value!,
-                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-              ),
-              TextFormField(
-                initialValue: dataCreated, // Atualizando para 'dataCreated'
-                decoration: InputDecoration(labelText: 'Data de Criação'),
-                onSaved: (value) => dataCreated = value!,
-                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-              ),
-              TextFormField(
-                initialValue: quantidade.toString(), // Convertendo para string
-                decoration: InputDecoration(labelText: 'Quantidade'),
-                keyboardType: TextInputType.number,
-                onSaved: (value) => quantidade = int.parse(value!), // Convertendo para int
-                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-              ),
-             TextFormField(
-  initialValue: quantidade.toString(),
-  decoration: InputDecoration(labelText: 'Quantidade'),
-  keyboardType: TextInputType.number,
-  onSaved: (value) {
-    if (value != null && value.isNotEmpty) {
-      quantidade = int.parse(value);
-    } else {
-      quantidade = 0; // valor padrão
-    }
-  },
-  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-),
-TextFormField(
-  initialValue: metaQuantidade.toString(),
-  decoration: InputDecoration(labelText: 'Meta Quantidade'),
-  keyboardType: TextInputType.number,
-  onSaved: (value) {
-    if (value != null && value.isNotEmpty) {
-      metaQuantidade = int.parse(value);
-    } else {
-      metaQuantidade = 0; // valor padrão
-    }
-  },
-  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-),
-            ],
+void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
+  final formKey = GlobalKey<FormState>();
+  int id = doacao.id;
+  String categoria = doacao.categoria;
+  String itemName = doacao.itemName;
+  String dataCreated = doacao.dataCreated;
+  int quantidade = doacao.quantidade;
+  int metaQuantidade = doacao.metaQuantidade;
+  String metaDate = doacao.metaDate;
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Editar Doação'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  initialValue: id.toString(),
+                  decoration: InputDecoration(labelText: 'ID'),
+                  onSaved: (value) => id = int.parse(value!),
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  initialValue: categoria,
+                  decoration: InputDecoration(labelText: 'Categoria'),
+                  onSaved: (value) => categoria = value!,
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  initialValue: itemName,
+                  decoration: InputDecoration(labelText: 'Item'),
+                  onSaved: (value) => itemName = value!,
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  initialValue: dataCreated,
+                  decoration: InputDecoration(labelText: 'Data de Criação'),
+                  onSaved: (value) => dataCreated = value!,
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  initialValue: quantidade.toString(),
+                  decoration: InputDecoration(labelText: 'Quantidade'),
+                  keyboardType: TextInputType.number,
+                  onSaved: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      quantidade = int.parse(value);
+                    } else {
+                      quantidade = 0;
+                    }
+                  },
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  initialValue: metaQuantidade.toString(),
+                  decoration: InputDecoration(labelText: 'Meta Quantidade'),
+                  keyboardType: TextInputType.number,
+                  onSaved: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      metaQuantidade = int.parse(value);
+                    } else {
+                      metaQuantidade = 0;
+                    }
+                  },
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  initialValue: metaDate,
+                  decoration: InputDecoration(labelText: 'Data Meta'),
+                  onSaved: (value) => metaDate = value!,
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (formKey.currentState!.validate()) {
-              formKey.currentState!.save();
-              final novaDoacao = Doacao(
-                id: id,
-                categoria: categoria,
-                itemName: itemName,
-                dataCreated: dataCreated,
-                quantidade: quantidade,
-                metaQuantidade: metaQuantidade, // Adicionando metaQuantidade
-                metaDate: metaDate, // Adicionando metaDate
-              );
-              editarDoacao(index, novaDoacao); // Chama a função de edição
-              Navigator.pop(context);
-            }
-          },
-          child: Text('Salvar'),
-        ),
-      ],
-    );
-  },
-);
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                formKey.currentState!.save();
+                final novaDoacao = Doacao(
+                  id: id,
+                  categoria: categoria,
+                  itemName: itemName,
+                  dataCreated: dataCreated,
+                  quantidade: quantidade,
+                  metaQuantidade: metaQuantidade,
+                  metaDate: metaDate,
+                );
+                editarDoacao(index, novaDoacao);
+                Navigator.pop(context);
+              }
+            },
+            child: Text('Salvar'),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 
 
- @override
+@override
 Widget build(BuildContext context) {
   return Scaffold(
     appBar: CustomAppBar(title: ''),
-    body: SingleChildScrollView( // Adicione SingleChildScrollView aqui
+    body: SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -1446,30 +1435,26 @@ Widget build(BuildContext context) {
           children: [
             _buildSearchAndActionBar(),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: Icon(Icons.history, color: Colors.white),
-              label: Text(
-                'Ver Histórico de Doações',
-                style: TextStyle(color: Colors.white),
-              ),
-              onPressed: _navegarParaHistorico,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-              ),
-            ),
+          
             const SizedBox(height: 20),
             Divider(thickness: 1, color: Colors.grey.shade300),
             const SizedBox(height: 10),
             _buildDonationsTable(),
             const SizedBox(height: 20),
-            Footer(), // Rodapé no final
+            Footer(),
           ],
         ),
       ),
     ),
+    floatingActionButton: FloatingActionButton(
+      onPressed: _mostrarDialogoAdicionarDoacao, // Chama o diálogo para adicionar doação
+      backgroundColor: Colors.blue,
+      child: Icon(Icons.add),
+      tooltip: 'Adicionar Doação',
+    ),
   );
 }
-  
+
   
 
   Widget _buildDonationsTable() {
@@ -1499,329 +1484,596 @@ Widget build(BuildContext context) {
   }
     
 
-  List<DataRow> _buildDonationRows() {
-    return List.generate(_doacoes.length, (index) {
-      final doacao = _doacoes[index];
-      return DataRow(cells: [
-        DataCell(Text(doacao.id.toString())),
-        DataCell(Text(doacao.categoria)),
-        DataCell(Text(doacao.itemName)),
-        DataCell(Text(doacao.dataCreated)),
-        DataCell(Text(doacao.quantidade.toString())),
-        DataCell(Text(doacao.metaQuantidade.toString())),
-        DataCell(Text(doacao.metaDate)),
-        DataCell(
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.edit),
-                onPressed: () {
-                  _mostrarDialogoEditarDoacao(index, doacao);
-                },
-              ),
-              IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () {
-                  removerDoacao(index);
-                },
-              ),
-            ],
-          ),
+List<DataRow> _buildDonationRows() {
+  return List.generate(_doacoesFiltradas.length, (index) {
+    final doacao = _doacoesFiltradas[index];
+    return DataRow(cells: [
+      DataCell(Text(doacao.id.toString())),
+      DataCell(Text(doacao.categoria)),
+      DataCell(Text(doacao.itemName)),
+      DataCell(Text(doacao.dataCreated)),
+      DataCell(Text(doacao.quantidade.toString())),
+      DataCell(Text(doacao.metaQuantidade.toString())),
+      DataCell(Text(doacao.metaDate)),
+      DataCell(
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.edit),
+              onPressed: () {
+                _mostrarDialogoEditarDoacao(index, doacao);
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.delete),
+              onPressed: () {
+                removerDoacao(index);
+              },
+            ),
+            // Botão "Ver Histórico"
+            IconButton(
+              icon: Icon(Icons.history),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => HistoricoDoacoesPage(doacao: doacao),
+                  ),
+                );
+              },
+              tooltip: 'Ver Histórico',
+            ),
+          ],
         ),
-      ]);
-    });
-  }
-    Widget _buildSearchAndActionBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            decoration: InputDecoration(
-              labelText: 'Pesquisar Item...',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+      ),
+    ]);
+  });
+}
+
+
+Widget _buildSearchAndActionBar() {
+  return Row(
+    children: [
+      // Campo de pesquisa
+      Expanded(
+        child: TextField(
+          decoration: InputDecoration(
+            labelText: 'Pesquisar Item...',
+            prefixIcon: Icon(Icons.search),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
+          onChanged: (value) {
+            _termoPesquisa = value;
+          },
         ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          icon: Icon(Icons.add),
-          label: Text('Nova Doação'),
-          onPressed: _mostrarDialogoAdicionarDoacao,
-        ),
-      ],
-    );
-  }
+      ),
+      const SizedBox(width: 10),
+      
+      // Dropdown para categoria
+      DropdownButton<String>(
+        hint: Text("Categoria"),
+        value: _categoriaSelecionada,
+        items: <String>['Todos', 'alimento', 'monetario', 'mobilia', 'outros', 'roupa']
+            .map((String categoria) {
+          return DropdownMenuItem<String>(
+            value: categoria,
+            child: Text(categoria),
+          );
+        }).toList(),
+        onChanged: (String? newValue) {
+          setState(() {
+            _categoriaSelecionada = newValue == 'Todos' ? null : newValue;
+          });
+        },
+      ),
+      const SizedBox(width: 10),
+
+      // Botão "Filtrar"
+      ElevatedButton(
+        onPressed: _filtrarDoacoes,
+        style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.blue, // Cor de fundo do botão
+    foregroundColor: Colors.white,
+         ), // Chama a função de filtro
+        child: Text('Filtrar'),
+      ),
+    ],
+  );
+}
+
+
     
 
   void _mostrarDialogoAdicionarDoacao() {
-    final formKey = GlobalKey<FormState>();
-    String categoria = '', itemName = '', dataCreated = '', metaDate = '';
-    int quantidade = 0, metaQuantidade = 0;
+  final formKey = GlobalKey<FormState>();
+  String categoria = '', itemName = '', dataCreated = '', metaDate = '';
+  int quantidade = 0, metaQuantidade = 0;
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Adicionar Doação'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Categoria'),
-                    onSaved: (value) => categoria = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Item'),
-                    onSaved: (value) => itemName = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Data de Criação'),
-                    onSaved: (value) => dataCreated = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                 TextFormField(
-  decoration: InputDecoration(labelText: 'Quantidade'),
-  keyboardType: TextInputType.number,
-  onSaved: (value) {
-    if (value != null && value.isNotEmpty) {
-      quantidade = int.parse(value);
-    } else {
-      quantidade = 0; // valor padrão
-    }
-  },
-  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-),
-TextFormField(
-  decoration: InputDecoration(labelText: 'Meta Quantidade'),
-  keyboardType: TextInputType.number,
-  onSaved: (value) {
-    if (value != null && value.isNotEmpty) {
-      metaQuantidade = int.parse(value);
-    } else {
-      metaQuantidade = 0; // valor padrão
-    }
-  },
-  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-),
-
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Data Meta'),
-                    onSaved: (value) => metaDate = value!,
-                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                ],
-              ),
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Adicionar Doação'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Categoria'),
+                  onSaved: (value) => categoria = value!,
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Item'),
+                  onSaved: (value) => itemName = value!,
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Data de Criação'),
+                  onSaved: (value) => dataCreated = value!,
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Quantidade'),
+                  keyboardType: TextInputType.number,
+                  onSaved: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      quantidade = int.parse(value);
+                    } else {
+                      quantidade = 0;
+                    }
+                  },
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Meta Quantidade'),
+                  keyboardType: TextInputType.number,
+                  onSaved: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      metaQuantidade = int.parse(value);
+                    } else {
+                      metaQuantidade = 0;
+                    }
+                  },
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Data Meta'),
+                  onSaved: (value) => metaDate = value!,
+                  validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  formKey.currentState!.save();
-                  adicionarDoacao(Doacao(
-                    id: _doacoes.length + 1,
-                    categoria: categoria,
-                    itemName: itemName,
-                    dataCreated: dataCreated,
-                    quantidade: quantidade,
-                    metaQuantidade: metaQuantidade,
-                    metaDate: metaDate,
-                  ));
-                  Navigator.pop(context);
-                }
-              },
-              child: Text('Salvar'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                formKey.currentState!.save();
+                adicionarDoacao(Doacao(
+                  id: _doacoes.length + 1,
+                  categoria: categoria,
+                  itemName: itemName,
+                  dataCreated: dataCreated,
+                  quantidade: quantidade,
+                  metaQuantidade: metaQuantidade,
+                  metaDate: metaDate,
+                ));
+                Navigator.pop(context);
+              }
+            },
+            child: Text('Salvar'),
+          ),
+        ],
+      );
+    },
+  );
+}
+}
+
+
+
+class Historico {
+  final int id;
+  final String data;
+  final int qntd;
+  final String tipoMov;
+  final String doadorName;
+
+  Historico({
+    required this.id,
+    required this.data,
+    required this.qntd,
+    required this.tipoMov,
+    required this.doadorName,
+  });
+
+  factory Historico.fromJson(Map<String, dynamic> json) {
+    return Historico(
+      id: json['id'],
+      data: json['data'],
+      qntd: json['qntd'],
+      tipoMov: json['tipoMov'],
+      doadorName: json['doadorName'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'data': data,
+      'qntd': qntd,
+      'tipoMov': tipoMov,
+      'doadorName': doadorName,
+    };
   }
 }
 
 
-// Página de histórico de doações
-class HistoricoDoacoesPage extends StatelessWidget {
-  final List<Doacao> doacoes;
+class HistoricoDoacoesPage extends StatefulWidget {
+  final Doacao doacao; // Objeto `Doacao` que contém dados da doação
 
-  const HistoricoDoacoesPage({super.key, required this.doacoes});
+  const HistoricoDoacoesPage({Key? key, required this.doacao}) : super(key: key);
 
   @override
- Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: CustomAppBar(
-      title: '',
-      
-    ),
+  _HistoricoDoacoesPageState createState() => _HistoricoDoacoesPageState();
+}
+
+class _HistoricoDoacoesPageState extends State<HistoricoDoacoesPage> {
+  final TextEditingController metaController = TextEditingController();
+  final TextEditingController dataMetaController = TextEditingController();
+  double arrecadacaoAtual = 0;
+  double metaTotal = 200;
+  List<Historico> historicoList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    metaController.text = metaTotal.toString();
+    dataMetaController.text = "20, setembro de 2024"; // Exemplo
+    _fetchHistorico(); // Carrega o histórico ao inicializar
+  }
+
+  // Função para buscar o histórico do backend
+  Future<void> _fetchHistorico() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+    
+    try {
+      final response = await http.post(
+        Uri.parse('https://backend-ong.vercel.app/api/getHistoricoByCategoria'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({"doacao_id": widget.doacao.id}),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          historicoList = data.map((item) => Historico.fromJson(item)).toList();
+          arrecadacaoAtual = historicoList.fold(0, (sum, item) => sum + item.qntd);
+        });
+      } else {
+        throw Exception('Erro ao buscar o histórico');
+      }
+    } catch (e) {
+      print('Erro ao buscar o histórico: $e');
+    }
+  }
+
+  // Função para atualizar a meta no backend
+  Future<void> _atualizarMeta() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+    final novaMeta = int.tryParse(metaController.text) ?? metaTotal;
+
+    try {
+      final response = await http.patch(
+        Uri.parse('https://backend-ong.vercel.app/api/updateMetaInDoacao/${widget.doacao.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({"meta": novaMeta}),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          metaTotal = novaMeta.toDouble();
+        });
+      } else {
+        throw Exception('Erro ao atualizar a meta');
+      }
+    } catch (e) {
+      print('Erro ao atualizar a meta: $e');
+    }
+  }
+
+  // Função para adicionar novo histórico
+  Future<void> _adicionarHistorico(Historico historico) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://backend-ong.vercel.app/api/addHistorico'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(historico.toJson()),
+      );
+
+      if (response.statusCode == 201) {
+        _fetchHistorico(); // Recarrega o histórico
+      } else {
+        throw Exception('Erro ao adicionar histórico');
+      }
+    } catch (e) {
+      print('Erro ao adicionar histórico: $e');
+    }
+  }
+
+  // Função para remover histórico
+  Future<void> _removerHistorico(int historicoId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.delete(
+        Uri.parse('https://backend-ong.vercel.app/api/deleteSingleHistorico/$historicoId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        _fetchHistorico(); // Recarrega o histórico
+      } else {
+        throw Exception('Erro ao remover histórico');
+      }
+    } catch (e) {
+      print('Erro ao remover histórico: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double porcentagemArrecadada = (arrecadacaoAtual / metaTotal) * 100;
+
+    return Scaffold(
+  appBar: CustomAppBar(title: ''),
       body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  textStyle: TextStyle(color: Colors.white),
+                ),
+                child: Text('Voltar', 
+                style: TextStyle(color: Colors.white,fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Dados da Doação
+              _buildDadosDoacaoSection(),
+              
+              const SizedBox(height: 24),
+
+              // Meta da Doação
+              _buildMetaDoacaoSection(porcentagemArrecadada),
+
+              const SizedBox(height: 24),
+
+              // Histórico de Movimentações
+              _buildHistoricoMovimentacoes(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDadosDoacaoSection() {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      elevation: 3,
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Botão Voltar
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-              ),
-              child: Text('Voltar',
-              style: TextStyle(color: Colors.white)),
-            ),
-            const SizedBox(height: 20),
-            
-            // Dados da Doação
             Text(
-              'Dados da doação',
+              'Dados da Doação',
               style: TextStyle(
-                fontSize: 18,
+                color: Colors.purple,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                fontSize: 18,
               ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              widget.doacao.itemName,
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Card(
-              elevation: 5,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+            Row(
+              children: [
+                Icon(Icons.category, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text('Categoria: ${widget.doacao.categoria}', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.inventory, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text('Quantidade: ${widget.doacao.quantidade}'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetaDoacaoSection(double porcentagemArrecadada) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Meta da Doação',
+              style: TextStyle(
+                color: Colors.purple,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Arrecadação Atual',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            Text(
+              '${arrecadacaoAtual.toInt()} / ${metaTotal.toInt()}',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${porcentagemArrecadada.toStringAsFixed(1)}% da meta total',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            
+            // Gráfico Circular de Meta
+            Center(
+              child: SizedBox(
+                height: 100,
+                width: 100,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Text(
-                      'Arroz',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    PieChart(
+                      PieChartData(
+                        startDegreeOffset: 270,
+                        sectionsSpace: 0,
+                        centerSpaceRadius: 40,
+                        sections: [
+                          PieChartSectionData(
+                            value: porcentagemArrecadada,
+                            color: Colors.blue,
+                            radius: 18,
+                            title: '',
+                          ),
+                          PieChartSectionData(
+                            value: 100 - porcentagemArrecadada,
+                            color: Colors.grey.shade200,
+                            radius: 18,
+                            title: '',
+                          ),
+                        ],
+                        borderData: FlBorderData(show: false),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.category, color: Colors.blue),
-                        const SizedBox(width: 8),
                         Text(
-                          'Categoria: Alimento',
+                          '${porcentagemArrecadada.toStringAsFixed(0)}%',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Meta',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.inventory, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Quantidade: 55',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Meta da Doação
+            // Configurar Meta
             Text(
-              'Meta da Doação',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
+              'Configurar Meta',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
             ),
             const SizedBox(height: 8),
-            Card(
-              elevation: 5,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Arrecadação Atual',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: metaController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Nova Meta',
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '55 / 200',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    Text(
-                      '27% da meta total',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '20, setembro de 2024',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    LinearProgressIndicator(
-                      value: 0.27,
-                      backgroundColor: Colors.grey.shade300,
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Campo para Configurar Meta
-                    Text(
-                      'Configurar Meta',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'Meta',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'Data limite',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
+                IconButton(
+                  icon: Icon(Icons.edit, color: Colors.blue),
+                  onPressed: _atualizarMeta,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: dataMetaController,
+              decoration: InputDecoration(
+                labelText: 'Data Meta',
+                border: OutlineInputBorder(),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHistoricoMovimentacoes() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: historicoList.map((historico) => ListTile(
+        title: Text(historico.tipoMov),
+        subtitle: Text('Doador: ${historico.doadorName} - Quantidade: ${historico.qntd}'),
+        trailing: IconButton(
+          icon: Icon(Icons.delete, color: Colors.red),
+          onPressed: () => _removerHistorico(historico.id),
+        ),
+      )).toList(),
     );
   }
 }
