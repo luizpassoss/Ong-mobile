@@ -23,6 +23,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+
 class LoginFormPage extends StatefulWidget {
   const LoginFormPage({super.key});
 
@@ -36,7 +37,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
   final TextEditingController passwordController = TextEditingController();
   final String apiUrl = 'https://backend-ong.vercel.app/api/loginUser';
   bool isLoading = false;
-  bool manterConectado = false; // Estado para o checkbox "Manter Conectado"
+  bool manterConectado = false;
 
   @override
   void initState() {
@@ -54,7 +55,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
   // Verifica se o usuário está conectado e mantém o estado de login
   Future<void> _verificarEstadoLogin() async {
     final prefs = await SharedPreferences.getInstance();
-    final manterConectado = prefs.getBool('manterConectado') ?? false;
+    manterConectado = prefs.getBool('manterConectado') ?? false;
     final token = prefs.getString('tokenJWT');
     
     if (manterConectado && token != null) {
@@ -291,6 +292,8 @@ class _LoginFormPageState extends State<LoginFormPage> {
     );
   }
 }
+
+
 class Footer extends StatelessWidget {
   const Footer({super.key});
 
@@ -441,111 +444,156 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
 
+class DashboardPage extends StatefulWidget {
+  const DashboardPage({Key? key}) : super(key: key);
 
+  @override
+  _DashboardPageState createState() => _DashboardPageState();
+}
 
-class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key});
+class _DashboardPageState extends State<DashboardPage> {
+  double arrecadacaoTotal = 0.0;
+  double metaTotal = 5000.0; // Meta total para ser obtida dinamicamente
+  List<Map<String, String>> atividadesRecentes = [];
+  bool isLoading = true;
+  bool verMais = false; // Variável para controlar a exibição expandida
 
-  Future<void> _obterToken() async {
+  @override
+  void initState() {
+    super.initState();
+    _carregarDadosDashboard();
+  }
+
+  Future<void> _carregarDadosDashboard() async {
+    await _obterArrecadacaoTotal();
+    await _obterAtividadesRecentes();
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  // Função para obter a arrecadação total e a meta
+  Future<void> _obterArrecadacaoTotal() async {
     final prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('tokenJWT');
+    final token = prefs.getString('tokenJWT');
 
-    if (token != null) {
-      _mostrarToken(token);
-    } else {
-      _mostrarErro('Nenhum token encontrado.');
+    try {
+      final response = await http.get(
+        Uri.parse('https://backend-ong.vercel.app/api/getMetaFixa'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          arrecadacaoTotal = data['arrecadacaoAtual'] ?? 0.0;
+          metaTotal = data['meta'] ?? metaTotal;
+        });
+      } else {
+        print('Erro ao obter meta fixa: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Erro ao conectar à API de meta fixa: $e');
     }
   }
 
-  void _mostrarToken(String token) {
-    showDialog(
-      context: MyApp.navigatorKey.currentState!.overlay!.context,
-      builder: (context) => AlertDialog(
-        title: const Text('Token JWT'),
-        content: Text(token),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+  // Função para obter atividades recentes
+  Future<void> _obterAtividadesRecentes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://backend-ong.vercel.app/api/getHistorico'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          atividadesRecentes = data.map((item) {
+            return {
+              "date": (item['data'] ?? 'Data desconhecida').toString(),
+              "activity": '${item['doadorName']} doou ${item['qntd']} ${item['itemName'] ?? ''}'
+            };
+          }).toList().cast<Map<String, String>>(); // Converte para List<Map<String, String>>
+        });
+      } else {
+        print('Erro ao obter histórico de atividades: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Erro ao conectar à API de atividades recentes: $e');
+    }
   }
 
-  void _mostrarErro(String mensagem) {
-    showDialog(
-      context: MyApp.navigatorKey.currentState!.overlay!.context,
-      builder: (context) => AlertDialog(
-        title: const Text('Erro'),
-        content: Text(mensagem),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _logout() async {
+  Future<void> _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('tokenJWT');
-    Navigator.pushReplacement(
-      MyApp.navigatorKey.currentState!.overlay!.context,
+    await prefs.remove('manterConectado');
+
+    Navigator.pushAndRemoveUntil(
+      context,
       MaterialPageRoute(builder: (context) => LoginFormPage()),
+      (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color.fromRGBO(245, 245, 249, 1),
       appBar: CustomAppBar(title: ''),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Dashboard",
-                style: TextStyle(
-                  fontFamily: 'Roboto',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Dashboard",
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Arrecadação Total
+                    _buildArrecadacaoTotal(),
+
+                    const SizedBox(height: 24),
+
+                    // Recentes
+                    _buildRecentes(),
+
+                    const SizedBox(height: 24),
+
+                    // Rodapé
+                    Footer(),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Arrecadação Total
-              _buildArrecadacaoTotal(),
-
-              const SizedBox(height: 24),
-
-              // Recentes
-              _buildRecentes(),
-
-              const SizedBox(height: 24),
-              
-              // Rodapé
-              Footer(),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
   Widget _buildArrecadacaoTotal() {
+    double porcentagemArrecadada = (arrecadacaoTotal / metaTotal) * 100;
+
     return Card(
-      elevation: 5,
+      elevation: 0.5,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -573,19 +621,24 @@ class DashboardPage extends StatelessWidget {
                   flex: 3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
-                        'R\$4042',
+                        'R\$${arrecadacaoTotal.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.bold,
                           color: Color.fromRGBO(42, 48, 66, 1.0),
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
-                        '12% acima da meta',
-                        style: TextStyle(color: Colors.green, fontSize: 14),
+                        '${porcentagemArrecadada.toStringAsFixed(1)}% da meta',
+                        style: TextStyle(
+                          color: porcentagemArrecadada >= 100
+                              ? Colors.green
+                              : Colors.red,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -607,13 +660,13 @@ class DashboardPage extends StatelessWidget {
                                 centerSpaceRadius: 40,
                                 sections: [
                                   PieChartSectionData(
-                                    value: 101,
+                                    value: porcentagemArrecadada,
                                     color: const Color(0xFF51B0FE),
                                     radius: 18,
                                     title: '',
                                   ),
                                   PieChartSectionData(
-                                    value: 100 - 101,
+                                    value: 100 - porcentagemArrecadada,
                                     color: const Color(0xFFE6F0FA),
                                     radius: 18,
                                     title: '',
@@ -624,16 +677,16 @@ class DashboardPage extends StatelessWidget {
                             ),
                             Column(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Text(
-                                  '101.0%',
+                                  '${porcentagemArrecadada.toStringAsFixed(1)}%',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
                                   'Meta',
                                   style: TextStyle(
@@ -658,120 +711,139 @@ class DashboardPage extends StatelessWidget {
   }
 
   Widget _buildRecentes() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Recentes',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color.fromRGBO(42, 48, 66, 1.0),
-          ),
+  // Definir o número de atividades a serem exibidas inicialmente
+  int limiteInicial = 3;
+  List<Map<String, String>> atividadesExibidas = verMais
+      ? atividadesRecentes
+      : atividadesRecentes.take(limiteInicial).toList();
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        'Recentes',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Color.fromRGBO(42, 48, 66, 1.0),
         ),
-        const SizedBox(height: 8),
-        Card(
-          elevation: 5,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                _buildRecentActivity(
-                    '22 Nov', 'Caue doou 5 kilos de arroz'),
-                _buildRecentActivity(
-                    '17 Nov',
-                    'Walter doou 5 kilos de carne'),
-                _buildRecentActivity('Hoje',
-                    'João doou 10 kilos de macarrão'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    side: const BorderSide(color: Colors.blue),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
+      ),
+      const SizedBox(height: 8),
+      Card(
+        elevation: 0.5,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Lista de atividades
+              ...atividadesExibidas.map((atividade) => _buildRecentActivity(
+                  atividade["date"]!, atividade["activity"]!)),
+
+              // Botão "Veja Mais"
+              if (atividadesRecentes.length > limiteInicial)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      verMais = !verMais;
+                    });
+                  },
+                  style: TextButton.styleFrom(
+  backgroundColor: Colors.blue, // Cor de fundo
+  foregroundColor: Colors.white, // Cor do texto (substitui `primary`)
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(8), // Bordas arredondadas
+  ),
+  padding: EdgeInsets.symmetric(vertical: 6, horizontal: 14), // Padding
+),
+
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
                       Text(
-                        'View More',
-                        style: TextStyle(color: Colors.white),
+                        'Ver Mais',
+                        style: TextStyle(fontSize: 14),
                       ),
-                      SizedBox(width: 4),
-                      Icon(Icons.arrow_forward, color: Colors.white, size: 16),
+                      SizedBox(width: 5),
+                      Icon(Icons.arrow_forward, color: Colors.white),
                     ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecentActivity(String date, String activity) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: date == 'Hoje' ? Colors.blue : Colors.white,
-                  border: Border.all(color: Colors.blue, width: 2),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              if (date != 'Hoje')
-                Container(
-                  width: 2,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
                   ),
                 ),
             ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            date,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color.fromRGBO(42, 48, 66, 1.0),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Icon(Icons.arrow_forward, color: Colors.grey, size: 14),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              activity,
-              style: const TextStyle(
-                color: Color.fromRGBO(42, 48, 66, 0.7),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
-    );
-  }
+    ],
+  );
 }
 
+  Widget _buildRecentActivity(String date, String activity) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            // Ícone de círculo com borda
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: date == 'Hoje' ? Colors.blue : Colors.white,
+                border: Border.all(color: Colors.blue, width: 2),
+                shape: BoxShape.circle,
+              ),
+            ),
+            if (date != 'Hoje')
+              Container(
+                width: 2,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(width: 8),
+        
+        // Data e seta
+        Row(
+          children: [
+            Text(
+              date,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color.fromRGBO(42, 48, 66, 1.0),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_forward, color: Colors.grey, size: 14),
+          ],
+        ),
+        
+        const SizedBox(width: 8),
+
+        // Texto da atividade
+        Expanded(
+          child: Text(
+            activity,
+            style: const TextStyle(
+              color: Color.fromRGBO(42, 48, 66, 0.7),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+}
 
 class FamiliesPage extends StatefulWidget {
-  const FamiliesPage({super.key});
+  const FamiliesPage({Key? key}) : super(key: key);
 
   @override
   _FamiliesPageState createState() => _FamiliesPageState();
@@ -779,8 +851,6 @@ class FamiliesPage extends StatefulWidget {
 
 class _FamiliesPageState extends State<FamiliesPage> {
   List<Family> _families = []; // Lista de famílias cadastradas
-
-  // Variáveis para filtros
   bool _isFiltersExpanded = false;
   Map<String, bool> parentescoOptions = {
     'Todos': true,
@@ -791,279 +861,379 @@ class _FamiliesPageState extends State<FamiliesPage> {
   String selectedGender = 'Todos';
   RangeValues ageRange = const RangeValues(5, 95);
 
-  // Função para adicionar uma nova família
-  void _addFamily(Family family) {
-    setState(() {
-      _families.add(family);
-    });
+  @override
+  void initState() {
+    super.initState();
+    _buscarFamilias();
   }
 
-  // Função para mostrar o diálogo de cadastro de família
+  // Função para buscar famílias do backend
+  Future<void> _buscarFamilias() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://backend-ong.vercel.app/api/getFamilias'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _families = data.map((json) => Family.fromJson(json)).toList();
+        });
+      } else {
+        throw Exception('Erro ao buscar famílias');
+      }
+    } catch (e) {
+      print('Erro ao buscar famílias: $e');
+    }
+  }
+
+Future<void> _adicionarFamilia(Family family) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
+
+  try {
+    final response = await http.post(
+      Uri.parse('https://backend-ong.vercel.app/api/addFamilia'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(family.toJson()),
+    );
+
+    if (response.statusCode == 201) {
+      _buscarFamilias(); // Atualiza a lista de famílias
+    } else {
+      // Exibir detalhes do erro de resposta
+      print('Erro ao adicionar família: ${response.statusCode} - ${response.body}');
+      throw Exception('Erro ao adicionar família');
+    }
+  } catch (e) {
+    print('Erro ao adicionar família: $e');
+  }
+}
+
+
+  // Função para excluir uma família por ID
+  Future<void> _excluirFamilia(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    try {
+      final response = await http.delete(
+        Uri.parse('https://backend-ong.vercel.app/api/deleteFamilyById/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        _buscarFamilias(); // Atualiza a lista de famílias
+      } else {
+        throw Exception('Erro ao excluir família');
+      }
+    } catch (e) {
+      print('Erro ao excluir família: $e');
+    }
+  }
+
+  // Função para abrir o diálogo de adicionar família
   void _showAddFamilyDialog() {
-    String id = '', name = '', cpf = '';
+    String name = '';
+    String sobrenome = '';
+    String cpf = '';
+    String telefone = '';
+    String email = '';
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cadastro de Família'),
+        title: Text('Cadastrar Família'),
         content: Form(
           key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                decoration: InputDecoration(labelText: 'ID'),
-                validator: (value) => value!.isEmpty ? 'Informe o ID' : null,
-                onSaved: (value) => id = value!,
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Nome do Responsável'),
-                validator: (value) => value!.isEmpty ? 'Informe o Nome' : null,
-                onSaved: (value) => name = value!,
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'CPF do Responsável'),
-                validator: (value) => value!.isEmpty ? 'Informe o CPF' : null,
-                onSaved: (value) => cpf = value!,
-              ),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Nome do Responsável'),
+                  validator: (value) => value!.isEmpty ? 'Informe o nome' : null,
+                  onSaved: (value) => name = value!,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Sobrenome do Responsável'),
+                  validator: (value) => value!.isEmpty ? 'Informe o sobrenome' : null,
+                  onSaved: (value) => sobrenome = value!,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'CPF do Responsável'),
+                  validator: (value) => value!.isEmpty ? 'Informe o CPF' : null,
+                  onSaved: (value) => cpf = value!,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Telefone do Responsável'),
+                  validator: (value) => value!.isEmpty ? 'Informe o telefone' : null,
+                  onSaved: (value) => telefone = value!,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Email do Responsável'),
+                  validator: (value) => value!.isEmpty ? 'Informe o email' : null,
+                  onSaved: (value) => email = value!,
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () {
-              if (formKey.currentState!.validate()) {
-                formKey.currentState!.save();
-                _addFamily(Family(id: id, name: name, cpf: cpf));
-                Navigator.of(context).pop();
-              }
+        if (formKey.currentState!.validate()) {
+  formKey.currentState!.save();
+  _adicionarFamilia(Family(
+    id: 0,  // Defina como 0 ou outro valor padrão de sua escolha
+    respName: name,
+    respSobrenome: sobrenome,
+    respCpf: cpf,
+    respTelefone: telefone,
+    respEmail: email,
+    familyDesc: '',
+    enderecoId: 0,
+  ));
+}
+
             },
-            child: const Text('Cadastrar'),
+            child: Text('Cadastrar'),
           ),
         ],
       ),
     );
   }
 
-  void _toggleFilterExpansion() {
-    setState(() {
-      _isFiltersExpanded = !_isFiltersExpanded;
-    });
+  // Widget para a tabela de famílias
+  Widget _buildFamilyList() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columns: const [
+          DataColumn(label: Text("ID")),
+          DataColumn(label: Text("Nome")),
+          DataColumn(label: Text("Sobrenome")),
+          DataColumn(label: Text("CPF")),
+          DataColumn(label: Text("Telefone")),
+          DataColumn(label: Text("Email")),
+        ],
+        rows: _families.map((family) {
+          return DataRow(cells: [
+            DataCell(Text(family.id.toString())),
+            DataCell(Text(family.respName)),
+            DataCell(Text(family.respSobrenome)),
+            DataCell(Text(family.respCpf)),
+            DataCell(Text(family.respTelefone)),
+            DataCell(Text(family.respEmail)),
+          ]);
+        }).toList(),
+      ),
+    );
+  }
+
+  // Widget para a seção de filtros
+  Widget _buildFiltersSection() {
+    return ExpansionTile(
+      title: Text(
+        'Filtros',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Parentesco', style: TextStyle(fontWeight: FontWeight.bold)),
+            CheckboxListTile(
+              title: Text('Todos'),
+              value: parentescoOptions['Todos'],
+              onChanged: (value) {
+                setState(() {
+                  parentescoOptions['Todos'] = value!;
+                });
+              },
+            ),
+            CheckboxListTile(
+              title: Text('Responsável'),
+              value: parentescoOptions['Responsável'],
+              onChanged: (value) {
+                setState(() {
+                  parentescoOptions['Responsável'] = value!;
+                });
+              },
+            ),
+            CheckboxListTile(
+              title: Text('Filho'),
+              value: parentescoOptions['Filho'],
+              onChanged: (value) {
+                setState(() {
+                  parentescoOptions['Filho'] = value!;
+                });
+              },
+            ),
+            CheckboxListTile(
+              title: Text('Outro'),
+              value: parentescoOptions['Outro'],
+              onChanged: (value) {
+                setState(() {
+                  parentescoOptions['Outro'] = value!;
+                });
+              },
+            ),
+
+            Text('Gênero', style: TextStyle(fontWeight: FontWeight.bold)),
+            DropdownButtonFormField<String>(
+              value: selectedGender,
+              items: const [
+                DropdownMenuItem(value: 'Todos', child: Text('Todos')),
+                DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
+                DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  selectedGender = value!;
+                });
+              },
+            ),
+
+            Text('Idade', style: TextStyle(fontWeight: FontWeight.bold)),
+            RangeSlider(
+              values: ageRange,
+              min: 0,
+              max: 120,
+              divisions: 12,
+              labels: RangeLabels(
+                '${ageRange.start.round()}',
+                '${ageRange.end.round()}',
+              ),
+              onChanged: (RangeValues values) {
+                setState(() {
+                  ageRange = values;
+                });
+              },
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
-        title: (''),
-      ),
+      backgroundColor: Color.fromRGBO(245, 245, 249, 1),
+      appBar: CustomAppBar(title: ''),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Tabela de Famílias
-              _buildFamilyList(),
-              const SizedBox(height: 24),
-              
-              // Filtros de Pesquisa
-              _buildFiltersSection(),
-              
-              const SizedBox(height: 20),
-              Footer(), // Rodapé
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Famílias Cadastradas',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Cadastradas: ${_families.length}',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildFamilyList(),
+            const SizedBox(height: 20),
+            _buildFiltersSection(),
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                '© 2024 Ong Conforme',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddFamilyDialog,
-        child: const Icon(Icons.add),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.blue,
+        child: Icon(Icons.add),
+        tooltip: 'Adicionar Família',
       ),
-    );
-  }
-
-  Widget _buildFamilyList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Famílias Cadastradas',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          elevation: 5,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                // Campo de pesquisa
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: "Pesquisar responsável...",
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onChanged: (value) {
-                    // Implementar lógica de pesquisa, se necessário
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Tabela de dados
-                DataTable(
-                  columns: const [
-                    DataColumn(label: Text("ID")),
-                    DataColumn(label: Text("Nome")),
-                    DataColumn(label: Text("CPF")),
-                  ],
-                  rows: _families.map((family) {
-                    return DataRow(cells: [
-                      DataCell(Text(family.id)),
-                      DataCell(Text(family.name)),
-                      DataCell(Text(family.cpf)),
-                    ]);
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFiltersSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: _toggleFilterExpansion,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Filtros',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Icon(
-                _isFiltersExpanded ? Icons.expand_less : Icons.expand_more,
-                color: Colors.grey,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (_isFiltersExpanded)
-          Card(
-            elevation: 5,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Parentesco',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  ...parentescoOptions.keys.map((String key) {
-                    return CheckboxListTile(
-                      title: Text(key),
-                      value: parentescoOptions[key],
-                      onChanged: (bool? value) {
-                        setState(() {
-                          parentescoOptions[key] = value ?? false;
-                          if (key == 'Todos' && value == true) {
-                            parentescoOptions.updateAll((k, v) => k == 'Todos' ? true : false);
-                          } else if (key != 'Todos' && value == true) {
-                            parentescoOptions['Todos'] = false;
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Gênero',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: selectedGender,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'Todos', child: Text('Todos')),
-                      DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-                      DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        selectedGender = value!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Idade',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  RangeSlider(
-                    values: ageRange,
-                    min: 0,
-                    max: 120,
-                    divisions: 12,
-                    labels: RangeLabels(
-                      '${ageRange.start.round()}',
-                      '${ageRange.end.round()}',
-                    ),
-                    onChanged: (RangeValues values) {
-                      setState(() {
-                        ageRange = values;
-                      });
-                    },
-                    activeColor: Colors.blue,
-                    inactiveColor: Colors.grey.shade300,
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
     );
   }
 }
 
 // Classe para representar uma família
 class Family {
-  final String id;
-  final String name;
-  final String cpf;
+  final int id;
+  final String respName;
+  final String respSobrenome;
+  final String respCpf;
+  final String respTelefone;
+  final String respEmail;
+  final String familyDesc;
+  final int enderecoId;
 
-  Family({required this.id, required this.name, required this.cpf});
+  Family({
+    required this.id,
+    required this.respName,
+    required this.respSobrenome,
+    required this.respCpf,
+    required this.respTelefone,
+    required this.respEmail,
+    required this.familyDesc,
+    required this.enderecoId,
+  });
+
+factory Family.fromJson(Map<String, dynamic> json) {
+  return Family(
+    id: json['id'] is int ? json['id'] : int.tryParse(json['id'] ?? '0') ?? 0,
+    respName: json['resp_name'] ?? '',
+    respSobrenome: json['resp_sobrenome'] ?? '',
+    respCpf: json['resp_cpf'] ?? '',
+    respTelefone: json['resp_telefone'] ?? '',
+    respEmail: json['resp_email'] ?? '',
+    familyDesc: json['familyDesc'] ?? '',
+    enderecoId: json['endereco_id'] is int ? json['endereco_id'] : int.tryParse(json['endereco_id'] ?? '0') ?? 0,
+  );
 }
 
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'resp_name': respName,
+        'resp_sobrenome': respSobrenome,
+        'resp_cpf': respCpf,
+        'resp_telefone': respTelefone,
+        'resp_email': respEmail,
+        'familyDesc': familyDesc,
+        'endereco_id': enderecoId,
+      };
+}
 
 
 class Doacao {
@@ -1127,21 +1297,26 @@ class _DoacoesPageState extends State<DoacoesPage> {
     buscarDoacoes(); // Carrega as doações ao iniciar a página
   }
   
-void _filtrarDoacoes() {
-  setState(() {
-    _doacoesFiltradas = _doacoes.where((doacao) {
-      final matchCategoria = _categoriaSelecionada == null || doacao.categoria == _categoriaSelecionada;
-      final matchPesquisa = _termoPesquisa.isEmpty || doacao.itemName.toLowerCase().contains(_termoPesquisa.toLowerCase());
-      return matchCategoria && matchPesquisa;
-    }).toList();
-  });
-}
+  void _filtrarDoacoes() {
+    setState(() {
+      _doacoesFiltradas = _doacoes.where((doacao) {
+        final matchCategoria = _categoriaSelecionada == null || doacao.categoria == _categoriaSelecionada;
+        final matchPesquisa = _termoPesquisa.isEmpty || doacao.itemName.toLowerCase().contains(_termoPesquisa.toLowerCase());
+        return matchCategoria && matchPesquisa;
+      }).toList();
+    });
+  }
+    void _filtrarPorTermoPesquisa(String termo) {
+    setState(() {
+      _termoPesquisa = termo;
+      _doacoesFiltradas = _doacoes.where((doacao) {
+        return doacao.itemName.toLowerCase().contains(termo.toLowerCase());
+      }).toList();
+    });
+  }
 
-
-  
-  // Função para buscar todas as doações (modifique para carregar dados reais)
+// Função para buscar todas as doações
   Future<void> buscarDoacoes() async {
-    // Aqui você carregaria as doações da API e preencheria a lista _doacoes
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
     
@@ -1423,9 +1598,10 @@ void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
 
 
 
-@override
+ @override
 Widget build(BuildContext context) {
   return Scaffold(
+    backgroundColor: Color.fromRGBO(245, 245, 249, 1),
     appBar: CustomAppBar(title: ''),
     body: SingleChildScrollView(
       child: Padding(
@@ -1433,13 +1609,25 @@ Widget build(BuildContext context) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSearchAndActionBar(),
-            const SizedBox(height: 20),
-          
-            const SizedBox(height: 20),
-            Divider(thickness: 1, color: Colors.grey.shade300),
-            const SizedBox(height: 10),
-            _buildDonationsTable(),
+            // Card para conter a área de pesquisa e ações
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0.5,
+              color: Colors.white, // Cor de fundo do card
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSearchAndActionBar(),
+                    const SizedBox(height: 20),
+                    _buildDonationsTable(),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
             Footer(),
           ],
@@ -1447,144 +1635,277 @@ Widget build(BuildContext context) {
       ),
     ),
     floatingActionButton: FloatingActionButton(
-      onPressed: _mostrarDialogoAdicionarDoacao, // Chama o diálogo para adicionar doação
+      onPressed: _mostrarDialogoAdicionarDoacao,
       backgroundColor: Colors.blue,
-      child: Icon(Icons.add),
+      child: Icon(Icons.add,color: Colors.white,),
       tooltip: 'Adicionar Doação',
     ),
   );
 }
 
-  
-
-  Widget _buildDonationsTable() {
-    return _doacoes.isEmpty
-        ? Center(
-            child: Text(
-              'Nenhuma doação encontrada.',
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-          )
-        : SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('ID')),
-                DataColumn(label: Text('Categoria')),
-                DataColumn(label: Text('Item')),
-                DataColumn(label: Text('Data Criação')),
-                DataColumn(label: Text('Quantidade')),
-                DataColumn(label: Text('Meta Quantidade')),
-                DataColumn(label: Text('Data Meta')),
-                DataColumn(label: Text('Ações')),
-              ],
-              rows: _buildDonationRows(),
-            ),
-          );
-  }
-    
-
-List<DataRow> _buildDonationRows() {
-  return List.generate(_doacoesFiltradas.length, (index) {
-    final doacao = _doacoesFiltradas[index];
-    return DataRow(cells: [
-      DataCell(Text(doacao.id.toString())),
-      DataCell(Text(doacao.categoria)),
-      DataCell(Text(doacao.itemName)),
-      DataCell(Text(doacao.dataCreated)),
-      DataCell(Text(doacao.quantidade.toString())),
-      DataCell(Text(doacao.metaQuantidade.toString())),
-      DataCell(Text(doacao.metaDate)),
-      DataCell(
-        Row(
+Widget _buildDonationsTable() {
+  return _doacoes.isEmpty
+      ? Center(
+          child: Text(
+            'Nenhuma doação encontrada.',
+            style: TextStyle(color: Colors.grey, fontSize: 16),
+          ),
+        )
+      : Column(
           children: [
-            IconButton(
-              icon: Icon(Icons.edit),
-              onPressed: () {
-                _mostrarDialogoEditarDoacao(index, doacao);
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () {
-                removerDoacao(index);
-              },
-            ),
-            // Botão "Ver Histórico"
-            IconButton(
-              icon: Icon(Icons.history),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => HistoricoDoacoesPage(doacao: doacao),
+            // Container que permite rolagem horizontal
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                headingRowColor: MaterialStateProperty.resolveWith<Color>(
+                  (Set<MaterialState> states) {
+                    return Colors.grey.shade200; // Cor do cabeçalho
+                  },
+                ),
+                columns: [
+                  DataColumn(
+                    label: Text(
+                      'ID',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
                   ),
-                );
-              },
-              tooltip: 'Ver Histórico',
+                  DataColumn(
+                    label: Text(
+                      'Categoria',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Item',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Data Criação',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Quantidade',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Meta Quantidade',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Data Meta',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Ações',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ],
+                rows: _buildDonationRows(),
+              ),
+            ),
+            // Divider indicativo abaixo da tabela
+            const SizedBox(height: 8),
+            Divider(
+              thickness: 3,
+              color: Colors.grey.shade300,
             ),
           ],
-        ),
-      ),
-    ]);
-  });
+        );
 }
 
+    
+List<DataRow> _buildDonationRows() {
+    return List.generate(_doacoesFiltradas.length, (index) {
+      final doacao = _doacoesFiltradas[index];
+      return DataRow(cells: [
+        DataCell(Text(doacao.id.toString())),
+        DataCell(Text(doacao.categoria)),
+        DataCell(Text(doacao.itemName)),
+        DataCell(Text(doacao.dataCreated)),
+        DataCell(Text(doacao.quantidade.toString())),
+        DataCell(Text(doacao.metaQuantidade.toString())),
+        DataCell(Text(doacao.metaDate)),
+        DataCell(
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.edit,color: Colors.green,),
+                onPressed: () {
+                  _mostrarDialogoEditarDoacao(index, doacao);
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.delete,color: Colors.red,),
+                onPressed: () {
+                  removerDoacao(index);
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.history, color: const Color.fromARGB(255, 21, 91, 149),),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HistoricoDoacoesPage(doacao: doacao),
+                    ),
+                  );
+                },
+                tooltip: 'Ver Histórico',
+              ),
+            ],
+          ),
+        ),
+      ]);
+    });
+  }
 
-Widget _buildSearchAndActionBar() {
-  return Row(
-    children: [
-      // Campo de pesquisa
-      Expanded(
-        child: TextField(
-          decoration: InputDecoration(
-            labelText: 'Pesquisar Item...',
-            prefixIcon: Icon(Icons.search),
-            border: OutlineInputBorder(
+ void _mostrarOpcoesFiltro() {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Opções de Filtro',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 16),
+
+              // Dropdown para Categoria
+              DropdownButtonFormField<String>(
+                value: _categoriaSelecionada,
+                decoration: InputDecoration(
+                  labelText: 'Categoria',
+                  border: OutlineInputBorder(),
+                ),
+                items: <String>['Todos', 'alimento', 'monetario', 'mobilia', 'outros', 'roupa']
+                    .map((String categoria) {
+                  return DropdownMenuItem<String>(
+                    value: categoria,
+                    child: Text(categoria),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _categoriaSelecionada = newValue == 'Todos' ? null : newValue;
+                  });
+                },
+              ),
+              SizedBox(height: 16),
+
+              // Botão de Aplicar Filtro
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _filtrarDoacoes();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                  ),
+                  child: Text('Aplicar Filtro',style: TextStyle(color: Colors.white),),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
+
+  Widget _buildSearchAndActionBar() {
+    return Row(
+      children: [
+        // Campo de pesquisa com ícone
+        Expanded(
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Pesquisar Item...',
+              prefixIcon: Icon(Icons.search, color: Colors.grey),
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+            ),
+            onChanged: _filtrarPorTermoPesquisa,
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // Botão de Filtro
+        ElevatedButton.icon(
+          onPressed: _mostrarOpcoesFiltro,
+          icon: Icon(Icons.filter_list, color: const Color.fromARGB(255, 255, 255, 255)),
+          label: Text(
+            'Filtro',
+            style: TextStyle(color: const Color.fromARGB(255, 255, 255, 255)),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            elevation: 0,
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          onChanged: (value) {
-            _termoPesquisa = value;
-          },
         ),
-      ),
-      const SizedBox(width: 10),
-      
-      // Dropdown para categoria
-      DropdownButton<String>(
-        hint: Text("Categoria"),
-        value: _categoriaSelecionada,
-        items: <String>['Todos', 'alimento', 'monetario', 'mobilia', 'outros', 'roupa']
-            .map((String categoria) {
-          return DropdownMenuItem<String>(
-            value: categoria,
-            child: Text(categoria),
-          );
-        }).toList(),
-        onChanged: (String? newValue) {
-          setState(() {
-            _categoriaSelecionada = newValue == 'Todos' ? null : newValue;
-          });
-        },
-      ),
-      const SizedBox(width: 10),
+      ],
+    );
+  }
 
-      // Botão "Filtrar"
-      ElevatedButton(
-        onPressed: _filtrarDoacoes,
-        style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.blue, // Cor de fundo do botão
-    foregroundColor: Colors.white,
-         ), // Chama a função de filtro
-        child: Text('Filtrar'),
-      ),
-    ],
-  );
-}
-
-
-    
 
   void _mostrarDialogoAdicionarDoacao() {
   final formKey = GlobalKey<FormState>();
@@ -1853,6 +2174,7 @@ class _HistoricoDoacoesPageState extends State<HistoricoDoacoesPage> {
     double porcentagemArrecadada = (arrecadacaoAtual / metaTotal) * 100;
 
     return Scaffold(
+      backgroundColor: Color.fromRGBO(245, 245, 249, 1),
   appBar: CustomAppBar(title: ''),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
