@@ -13,6 +13,7 @@ dependencies:
   http: ^1.2.2
   shared_preferences: ^2.0.6
   fl_chart: ^0.69.0 # A null-safe package for charts
+  intl: ^0.17.0
 
 
 dev_dependencies:

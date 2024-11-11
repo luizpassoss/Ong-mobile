@@ -133,7 +133,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
           // Seção da Imagem de Fundo
           Expanded(
             flex: 2,
-            child: Container(
+            child: SizedBox(
               width: double.infinity,
               child: Image.asset(
                 'assets/images/fotodaong2.png',

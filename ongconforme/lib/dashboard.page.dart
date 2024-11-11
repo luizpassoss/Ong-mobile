@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 import 'login.page.dart';
 import 'familias.page.dart';
@@ -142,15 +143,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({Key? key}) : super(key: key);
+  const DashboardPage({super.key});
 
   @override
   _DashboardPageState createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  double arrecadacaoTotal = 0.0;
-  double metaTotal = 5000.0; // Meta total para ser obtida dinamicamente
+  int arrecadacaoTotal = 400;
+  int metaTotal = 100;
   List<Map<String, String>> atividadesRecentes = [];
   bool isLoading = true;
   bool verMais = false; // Variável para controlar a exibição expandida
@@ -176,7 +177,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     try {
       final response = await http.get(
-        Uri.parse('https://backend-ong.vercel.app/api/getMetaFixa'),
+        Uri.parse('https://backend-ong.vercel.app/api/getMetaFixa?id=1'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -184,11 +185,17 @@ class _DashboardPageState extends State<DashboardPage> {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          arrecadacaoTotal = data['arrecadacaoAtual'] ?? 0.0;
-          metaTotal = data['meta'] ?? metaTotal;
-        });
+        final List<dynamic> data = jsonDecode(response.body);
+
+        if (data.isNotEmpty) {
+          final item = data[0];
+
+          setState(() {
+            metaTotal = item['qntdMetaAll']?.toInt() ?? metaTotal;
+          });
+        } else {
+          print('Lista de dados vazia');
+        }
       } else {
         print('Erro ao obter meta fixa: ${response.statusCode}');
       }
@@ -333,7 +340,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           color: Color.fromRGBO(42, 48, 66, 1.0),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 1),
                       Text(
                         '${porcentagemArrecadada.toStringAsFixed(1)}% da meta',
                         style: TextStyle(
@@ -341,6 +348,15 @@ class _DashboardPageState extends State<DashboardPage> {
                               ? Colors.green
                               : Colors.red,
                           fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Meta: ${metaTotal.toStringAsFixed(1)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromRGBO(42, 48, 66, 1.0),
                         ),
                       ),
                     ],
@@ -413,6 +429,23 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  // Defina a lista manual de meses
+final List<String> meses = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+String formatarDataManual(String dateString) {
+  // Parse a data
+  DateTime date = DateTime.parse(dateString);
+
+  // Use a lista de meses manual para substituir o mês
+  String mes = meses[date.month - 1]; // Ajuste porque DateTime começa a contagem de meses a partir de 1
+
+  // Formate a data com o mês manual
+  return '${date.day} de $mes de ${date.year}';
+}
+
   Widget _buildRecentes() {
     // Definir o número de atividades a serem exibidas inicialmente
     int limiteInicial = 3;
@@ -444,7 +477,10 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 // Lista de atividades
                 ...atividadesExibidas.map((atividade) => _buildRecentActivity(
-                    atividade["date"]!, atividade["activity"]!)),
+                      formatarDataManual(atividade["date"] ??
+                          '0000-00-00'), 
+                      atividade["activity"] ?? '',
+                    )),
 
                 // Botão "Veja Mais"
                 if (atividadesRecentes.length > limiteInicial)
@@ -563,5 +599,3 @@ class Footer extends StatelessWidget {
     );
   }
 }
-
-

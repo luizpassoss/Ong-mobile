@@ -3,13 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:ongconforme/dashboard.page.dart';
 import 'package:ongconforme/historico_doacao.page.dart';
-import 'package:ongconforme/main.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'login.page.dart';
 import 'familias.page.dart';
-import 'doacoes.page.dart';
 
 class Doacao {
   int id;
@@ -424,11 +422,11 @@ class _DoacoesPageState extends State<DoacoesPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _mostrarDialogoAdicionarDoacao,
         backgroundColor: Colors.blue,
+        tooltip: 'Adicionar Doação',
         child: Icon(
           Icons.add,
           color: Colors.white,
         ),
-        tooltip: 'Adicionar Doação',
       ),
     );
   }
@@ -447,8 +445,8 @@ class _DoacoesPageState extends State<DoacoesPage> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: MaterialStateProperty.resolveWith<Color>(
-                    (Set<MaterialState> states) {
+                  headingRowColor: WidgetStateProperty.resolveWith<Color>(
+                    (Set<WidgetState> states) {
                       return Colors.grey.shade200; // Cor do cabeçalho
                     },
                   ),

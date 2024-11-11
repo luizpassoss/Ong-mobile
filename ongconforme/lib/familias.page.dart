@@ -5,7 +5,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'login.page.dart';
-import 'familias.page.dart';
 import 'doacoes.page.dart';
 import 'dashboard.page.dart';
 
@@ -193,7 +192,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 
 class FamiliesPage extends StatefulWidget {
-  const FamiliesPage({Key? key}) : super(key: key);
+  const FamiliesPage({super.key});
 
   @override
   _FamiliesPageState createState() => _FamiliesPageState();
@@ -201,7 +200,7 @@ class FamiliesPage extends StatefulWidget {
 
 class _FamiliesPageState extends State<FamiliesPage> {
   List<Family> _families = []; // Lista de famílias cadastradas
-  bool _isFiltersExpanded = false;
+  final bool _isFiltersExpanded = false;
   Map<String, bool> parentescoOptions = {
     'Todos': true,
     'Responsável': false,
@@ -535,8 +534,8 @@ class _FamiliesPageState extends State<FamiliesPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddFamilyDialog,
         backgroundColor: Colors.blue,
-        child: Icon(Icons.add),
         tooltip: 'Adicionar Família',
+        child: Icon(Icons.add),
       ),
     );
   }

@@ -50,8 +50,7 @@ class Historico {
 class HistoricoDoacoesPage extends StatefulWidget {
   final Doacao doacao; // Objeto `Doacao` que contém dados da doação
 
-  const HistoricoDoacoesPage({Key? key, required this.doacao})
-      : super(key: key);
+  const HistoricoDoacoesPage({super.key, required this.doacao});
 
   @override
   _HistoricoDoacoesPageState createState() => _HistoricoDoacoesPageState();
