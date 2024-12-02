@@ -2,13 +2,24 @@
 
 Projeto realizado com a ideia de desenvolver um software para auxiliar a comunidade de Joinville, em parceria com a Catolica de Santa Catarina.
 
+Disciplina: (PAC) Projeto de Aprendizagem Colaborativa Extensionista do Curso de Engenharia de Software da Católica de Santa Catarina
+
+Docente: Claudinei Dias
+
 Grupo: Cauê Fernandes, João Vitor Ziem e Luiz Fernando Passos.
 
 - [Flutter](https://github.com/flutter/flutter) version 3.24.0.
   
 - [MySQL](https://www.mysql.com/) latest version.
 
-  
+## Justificativa do PAC 
+
+A realização deste projeto busca atender às necessidades do Instituto Conforme, uma organização que sem fins lucrativos, que atua na area de assistencia social, apoiando familias e comunidades na regiao de Joinville.
+
+Atualmente, a entidade enfrenta desafios como: dificuldade na gestão de recursos, falta de uma ferramenta centralizada para acompanhamento de atividades ou até uma comunicação ineficiente entre colaboradores e doadores. Esses desafios comprometem o impacto das ações realizadas pela organização e a eficiência operacional, lembrando que a maioria dos colaboradores são voluntários.
+
+O projeto desenvolvido como um Software para Gestão de Estoque, visa resolver essas dificuldades ao oferecer uma solução tecnológica com o intuito de melhorar gestão de tempo, gestão de recursor e aumento da eficiência das operações.
+
 ## Como usar 
 
 1. **Abra a pasta** onde você deseja salvar o projeto no VSCode.
