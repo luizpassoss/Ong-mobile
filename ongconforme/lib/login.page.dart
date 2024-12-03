@@ -89,6 +89,13 @@ class _LoginFormPageState extends State<LoginFormPage> {
     await prefs.setString('tokenJWT', token);
     await prefs.setBool('manterConectado', manterConectado); // Salva o estado do checkbox
   }
+  
+  Future<void> _logout() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('tokenJWT'); // Remove o token
+  await prefs.remove('manterConectado'); // Reseta a configuração de manter conectado
+}
+
 
   void _mostrarErro(String mensagem) {
     showDialog(

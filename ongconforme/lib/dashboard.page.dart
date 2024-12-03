@@ -5,7 +5,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-
 import 'login.page.dart';
 import 'familias.page.dart';
 import 'doacoes.page.dart';
@@ -69,7 +68,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _logout(BuildContext context) {
+  Future<void> _logout(BuildContext context) async {
+    // Limpa o estado de login armazenado em SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('tokenJWT');
+    await prefs.remove('manterConectado');
+
+    // Redireciona para a tela de login
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginFormPage()),
@@ -129,8 +134,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         IconButton(
           icon: Icon(Icons.logout),
-          onPressed: () {
-            _logout(context);
+          onPressed: () async {
+            await _logout(context); // Chama o método de logout
           },
         ),
       ],
@@ -141,6 +146,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
+
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
