@@ -40,7 +40,6 @@ class Doacao {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
         'categoria': categoria,
         'itemName': itemName,
         'dataCreated': dataCreated,
@@ -146,68 +145,74 @@ class _DoacoesPageState extends State<DoacoesPage> {
     }
   }
 
-  // Função para adicionar uma nova doação
   Future<void> adicionarDoacao(Doacao doacao) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
 
-    try {
-      final response = await http.post(
-        Uri.parse('https://backend-ong.vercel.app/api/addDoacao'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(doacao.toJson()),
-      );
+  try {
+    final response = await http.post(
+      Uri.parse('https://backend-ong.vercel.app/api/addDoacao'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+       body: jsonEncode(doacao.toJson()),
+  
+    );
+    print('Corpo da requisição: ${jsonEncode(doacao.toJson())}');
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
 
-      if (response.statusCode == 201) {
-        buscarDoacoes();
-      } else {
-        throw Exception('Erro ao adicionar doação');
-      }
-    } catch (e) {
-      print('Erro ao adicionar doação: $e');
+    if (response.statusCode == 201) {
+      buscarDoacoes();
+    } else {
+      throw Exception('Erro ao adicionar doação: ${response.body}');
     }
+  } catch (e) {
+    print('Erro ao adicionar doação: $e');
   }
+}
 
-  // Função para editar uma doação existente
-  Future<void> editarDoacao(int index, Doacao doacao) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
 
-    try {
-      // Cria um mapa com os dados necessários
-      final Map<String, dynamic> dadosEditar = {
-        'id': doacao.id,
-        'categoria': doacao.categoria,
-        'itemName': doacao.itemName,
-      };
 
-      final response = await http.put(
-        Uri.parse(
-            'https://backend-ong.vercel.app/api/updateDoacao/${doacao.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(dadosEditar), // Envia apenas os dados solicitados
-      );
 
-      if (response.statusCode == 200) {
-        setState(() {
-          _doacoes[index] = doacao;
-        });
-      } else {
-        // Exibe status e corpo da resposta para diagnóstico detalhado
-        debugPrint(
-            'Erro ao editar doação: ${response.statusCode} - ${response.body}');
-        throw Exception('Erro ao editar doação');
-      }
-    } catch (e) {
-      print('Erro ao editar doação: $e');
+ // Função para editar uma doação existente
+Future<void> editarDoacao(int index, Doacao doacao) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
+
+  try {
+    // Cria um mapa com os dados necessários
+    final Map<String, dynamic> dadosEditar = {
+      'id': doacao.id,            // Inclui o ID no corpo da requisição
+      'categoria': doacao.categoria,
+      'itemName': doacao.itemName,
+    };
+
+    final response = await http.put(
+      Uri.parse('https://backend-ong.vercel.app/api/updateDoacao'), // Endpoint sem o ID
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(dadosEditar), // Envia os dados no corpo da requisição
+    );
+
+    if (response.statusCode == 200) {
+      setState(() {
+        _doacoes[index] = doacao; // Atualiza a lista localmente
+      });
+    } else {
+      // Exibe status e corpo da resposta para diagnóstico detalhado
+      debugPrint(
+          'Erro ao editar doação: ${response.statusCode} - ${response.body}');
+      throw Exception('Erro ao editar doação');
     }
+  } catch (e) {
+    print('Erro ao editar doação: $e');
   }
+}
+
 
   // Função para atualizar a meta de uma doação
   Future<void> atualizarMeta(String id, int novaMeta) async {
@@ -236,34 +241,36 @@ class _DoacoesPageState extends State<DoacoesPage> {
   }
 
   // Função para remover uma doação
-  Future<void> removerDoacao(int index) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
-    final doacao = _doacoes[index];
+Future<void> removerDoacao(int index) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
+  final doacao = _doacoes[index];
 
-    try {
-      final response = await http.delete(
-        Uri.parse(
-            'https://backend-ong.vercel.app/api/deleteDoacao/${doacao.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+  try {
+    final response = await http.delete(
+      Uri.parse('https://backend-ong.vercel.app/api/deleteDoacao'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'id': doacao.id,  // Passando o ID da doação no corpo da requisição
+      }),
+    );
 
-      if (response.statusCode == 200) {
-        setState(() {
-          _doacoes.removeAt(index);
-        });
-      } else {
-        throw Exception('Erro ao remover doação');
-      }
-    } catch (e) {
-      // ignore: avoid_print
-      print('Erro ao remover doação: $e');
+    if (response.statusCode == 200) {
+      setState(() {
+        _doacoes.removeAt(index);
+      });
+    } else {
+      throw Exception('Erro ao remover doação');
     }
+  } catch (e) {
+    // ignore: avoid_print
+    print('Erro ao remover doação: $e');
   }
-  // Função para exibir o histórico de doações
+}
+
 
   void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
     final formKey = GlobalKey<FormState>();
@@ -869,7 +876,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _logout(BuildContext context) {
+  Future<void> _logout(BuildContext context) async {
+    // Limpa o estado de login armazenado em SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('tokenJWT');
+    await prefs.remove('manterConectado');
+
+    // Redireciona para a tela de login
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginFormPage()),
@@ -929,8 +942,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         IconButton(
           icon: Icon(Icons.logout),
-          onPressed: () {
-            _logout(context);
+          onPressed: () async {
+            await _logout(context); // Chama o método de logout
           },
         ),
       ],

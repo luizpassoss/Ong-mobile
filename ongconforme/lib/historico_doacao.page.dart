@@ -476,7 +476,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _logout(BuildContext context) {
+  Future<void> _logout(BuildContext context) async {
+    // Limpa o estado de login armazenado em SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('tokenJWT');
+    await prefs.remove('manterConectado');
+
+    // Redireciona para a tela de login
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginFormPage()),
@@ -536,8 +542,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         IconButton(
           icon: Icon(Icons.logout),
-          onPressed: () {
-            _logout(context);
+          onPressed: () async {
+            await _logout(context); // Chama o método de logout
           },
         ),
       ],

@@ -116,7 +116,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _logout(BuildContext context) {
+  Future<void> _logout(BuildContext context) async {
+    // Limpa o estado de login armazenado em SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('tokenJWT');
+    await prefs.remove('manterConectado');
+
+    // Redireciona para a tela de login
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginFormPage()),
@@ -176,8 +182,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         IconButton(
           icon: Icon(Icons.logout),
-          onPressed: () {
-            _logout(context);
+          onPressed: () async {
+            await _logout(context); // Chama o método de logout
           },
         ),
       ],
@@ -188,6 +194,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
+
 
 
 class FamiliesPage extends StatefulWidget {
@@ -214,6 +221,186 @@ class _FamiliesPageState extends State<FamiliesPage> {
     super.initState();
     _buscarFamilias();
   }
+Future<int> _cadastrarEndereco(
+  String logradouro,
+  String bairro,
+  String cidade,
+  String estado,
+  String cep,
+) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
+
+  try {
+    final response = await http.post(
+      Uri.parse('https://backend-ong.vercel.app/api/addEndereco'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'logradouro': logradouro,
+        'bairro': bairro,
+        'cidade': cidade,
+        'estado': estado,
+        'cep': cep,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      final responseData = jsonDecode(response.body);
+      return responseData['id']; // Retorna o id do endereço cadastrado
+    } else {
+      final errorResponse = jsonDecode(response.body);
+      throw Exception(
+          'Erro ao cadastrar endereço: ${response.statusCode}, ${errorResponse['message']}');
+    }
+  } catch (e) {
+    print('Erro ao cadastrar endereço: $e');
+    throw Exception('Erro inesperado ao cadastrar endereço.');
+  }
+}
+
+Future<void> _adicionarFamiliaComEndereco({
+  required String respName,
+  required String respSobrenome,
+  required String respCpf,
+  required String respTelefone,
+  required String respEmail,
+  required String familyDesc,
+  required String logradouro,
+  required String bairro,
+  required String cidade,
+  required String estado,
+  required String cep,
+}) async {
+  try {
+    // Cadastra o endereço e obtém o ID
+    final enderecoId = await _cadastrarEndereco(
+      logradouro,
+      bairro,
+      cidade,
+      estado,
+      cep,
+    );
+
+    // Envia os dados da família com o endereco_id
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('tokenJWT');
+
+    final response = await http.post(
+      Uri.parse('https://backend-ong.vercel.app/api/addFamilia'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'respName': respName,
+        'respSobrenome': respSobrenome,
+        'respCpf': respCpf,
+        'respTelefone': respTelefone,
+        'respEmail': respEmail,
+        'familyDesc': familyDesc,
+        'endereco_id': enderecoId,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      print('Família cadastrada com sucesso!');
+      _buscarFamilias(); // Atualiza a lista de famílias
+    } else {
+      final errorResponse = jsonDecode(response.body);
+      throw Exception(
+          'Erro ao cadastrar família: ${response.statusCode}, ${errorResponse['message']}');
+    }
+  } catch (e) {
+    print('Erro ao cadastrar família com endereço: $e');
+    throw Exception('Erro inesperado ao cadastrar família.');
+  }
+}
+
+void _showAddFamilyDialog() {
+  String name = '';
+  String sobrenome = '';
+  String cpf = '';
+  String telefone = '';
+  String email = '';
+  String familyDesc = '';
+  String logradouro = '';
+  String bairro = '';
+  String cidade = '';
+  String estado = '';
+  String cep = '';
+  final formKey = GlobalKey<FormState>();
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Cadastrar Família'),
+      content: Form(
+        key: formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTextField('Nome do Responsável', (value) => name = value),
+              _buildTextField('Sobrenome do Responsável',
+                  (value) => sobrenome = value),
+              _buildTextField('CPF do Responsável', (value) => cpf = value),
+              _buildTextField('Telefone do Responsável',
+                  (value) => telefone = value),
+              _buildTextField('Email do Responsável', (value) => email = value),
+              _buildTextField(
+                  'Descrição da Família', (value) => familyDesc = value),
+              Divider(),
+              _buildTextField('Logradouro', (value) => logradouro = value),
+              _buildTextField('Bairro', (value) => bairro = value),
+              _buildTextField('Cidade', (value) => cidade = value),
+              _buildTextField('Estado', (value) => estado = value),
+              _buildTextField('CEP', (value) => cep = value),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (formKey.currentState!.validate()) {
+              formKey.currentState!.save();
+              _adicionarFamiliaComEndereco(
+                respName: name,
+                respSobrenome: sobrenome,
+                respCpf: cpf,
+                respTelefone: telefone,
+                respEmail: email,
+                familyDesc: familyDesc,
+                logradouro: logradouro,
+                bairro: bairro,
+                cidade: cidade,
+                estado: estado,
+                cep: cep,
+              );
+              Navigator.of(context).pop();
+            }
+          },
+          child: Text('Cadastrar'),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildTextField(String label, Function(String) onSaved) {
+  return TextFormField(
+    decoration: InputDecoration(labelText: label),
+    validator: (value) => value!.isEmpty ? 'Informe o $label' : null,
+    onSaved: (value) => onSaved(value!),
+  );
+}
 
   // Função para buscar famílias do backend
   Future<void> _buscarFamilias() async {
@@ -242,166 +429,110 @@ class _FamiliesPageState extends State<FamiliesPage> {
     }
   }
 
-  Future<void> _adicionarFamilia(Family family) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
+  
+Future<void> _excluirFamilia() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
 
-    try {
-      final response = await http.post(
-        Uri.parse('https://backend-ong.vercel.app/api/addFamilia'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(family.toJson()),
-      );
-
-      if (response.statusCode == 201) {
-        _buscarFamilias(); // Atualiza a lista de famílias
-      } else {
-        // Exibir detalhes do erro de resposta
-        print(
-            'Erro ao adicionar família: ${response.statusCode} - ${response.body}');
-        throw Exception('Erro ao adicionar família');
-      }
-    } catch (e) {
-      print('Erro ao adicionar família: $e');
+  try {
+    if (selectedFamilyId == null) {
+      throw Exception('Nenhuma família selecionada');
     }
-  }
 
-  // Função para excluir uma família por ID
-  Future<void> _excluirFamilia(String id) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
+    final response = await http.delete(
+      Uri.parse('https://backend-ong.vercel.app/api/deleteFamilyById'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-    try {
-      final response = await http.delete(
-        Uri.parse('https://backend-ong.vercel.app/api/deleteFamilyById/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        _buscarFamilias(); // Atualiza a lista de famílias
-      } else {
-        throw Exception('Erro ao excluir família');
-      }
-    } catch (e) {
-      print('Erro ao excluir família: $e');
+    if (response.statusCode == 200) {
+      _buscarFamilias();  // Atualiza a lista de famílias
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Família excluída com sucesso')));
+    } else {
+      throw Exception('Erro ao excluir família');
     }
+  } catch (e) {
+    print('Erro ao excluir família: $e');
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao excluir família')));
   }
+}
+String? selectedFamilyId;  // Variável para armazenar o familyId selecionado
 
-  // Função para abrir o diálogo de adicionar família
-  void _showAddFamilyDialog() {
-    String name = '';
-    String sobrenome = '';
-    String cpf = '';
-    String telefone = '';
-    String email = '';
-    final formKey = GlobalKey<FormState>();
+void _setSelectedFamily(String familyId) {
+  setState(() {
+    selectedFamilyId = familyId;  // Define o familyId da família selecionada
+  });
+}
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Cadastrar Família'),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Nome do Responsável'),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Informe o nome' : null,
-                  onSaved: (value) => name = value!,
-                ),
-                TextFormField(
-                  decoration:
-                      InputDecoration(labelText: 'Sobrenome do Responsável'),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Informe o sobrenome' : null,
-                  onSaved: (value) => sobrenome = value!,
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'CPF do Responsável'),
-                  validator: (value) => value!.isEmpty ? 'Informe o CPF' : null,
-                  onSaved: (value) => cpf = value!,
-                ),
-                TextFormField(
-                  decoration:
-                      InputDecoration(labelText: 'Telefone do Responsável'),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Informe o telefone' : null,
-                  onSaved: (value) => telefone = value!,
-                ),
-                TextFormField(
-                  decoration:
-                      InputDecoration(labelText: 'Email do Responsável'),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Informe o email' : null,
-                  onSaved: (value) => email = value!,
-                ),
-              ],
-            ),
-          ),
-        ),
+void _showDeleteConfirmationDialog() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Confirmar Exclusão'),
+        content: Text('Você tem certeza de que deseja excluir esta família?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.of(context).pop();  // Fecha o diálogo
+            },
             child: Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () {
-              if (formKey.currentState!.validate()) {
-                formKey.currentState!.save();
-                _adicionarFamilia(Family(
-                  id: 0, // Defina como 0 ou outro valor padrão de sua escolha
-                  respName: name,
-                  respSobrenome: sobrenome,
-                  respCpf: cpf,
-                  respTelefone: telefone,
-                  respEmail: email,
-                  familyDesc: '',
-                  enderecoId: 0,
-                ));
-              }
+              _excluirFamilia();  // Exclui a família usando o selectedFamilyId
+              Navigator.of(context).pop();  // Fecha o diálogo
             },
-            child: Text('Cadastrar'),
+            child: Text('Excluir'),
           ),
         ],
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
-  // Widget para a tabela de famílias
-  Widget _buildFamilyList() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text("ID")),
-          DataColumn(label: Text("Nome")),
-          DataColumn(label: Text("Sobrenome")),
-          DataColumn(label: Text("CPF")),
-          DataColumn(label: Text("Telefone")),
-          DataColumn(label: Text("Email")),
-        ],
-        rows: _families.map((family) {
-          return DataRow(cells: [
-            DataCell(Text(family.id.toString())),
-            DataCell(Text(family.respName)),
-            DataCell(Text(family.respSobrenome)),
-            DataCell(Text(family.respCpf)),
-            DataCell(Text(family.respTelefone)),
-            DataCell(Text(family.respEmail)),
-          ]);
-        }).toList(),
-      ),
-    );
-  }
+ 
+
+ Widget _buildFamilyList() {
+  return SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: DataTable(
+      columns: const [
+        DataColumn(label: Text("ID")),
+        DataColumn(label: Text("Nome")),
+        DataColumn(label: Text("Sobrenome")),
+        DataColumn(label: Text("CPF")),
+        DataColumn(label: Text("Telefone")),
+        DataColumn(label: Text("Email")),
+        DataColumn(label: Text("Ações")),  // Coluna de ações
+      ],
+      rows: _families.map((family) {
+        return DataRow(cells: [
+          DataCell(Text(family.id.toString())),
+          DataCell(Text(family.respName)),
+          DataCell(Text(family.respSobrenome)),
+          DataCell(Text(family.respCpf)),
+          DataCell(Text(family.respTelefone)),
+          DataCell(Text(family.respEmail)),
+          DataCell(
+            IconButton(
+              icon: Icon(Icons.delete, color: Colors.red),
+              onPressed: () {
+                // Atribui o ID da família selecionada
+                _setSelectedFamily(family.id.toString());
+                // Exibe a confirmação de exclusão
+                _showDeleteConfirmationDialog();
+              },
+            ),
+          ),
+        ]);
+      }).toList(),
+    ),
+  );
+}
+
 
   // Widget para a seção de filtros
   Widget _buildFiltersSection() {
@@ -487,56 +618,55 @@ class _FamiliesPageState extends State<FamiliesPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color.fromRGBO(245, 245, 249, 1),
-      appBar: CustomAppBar(title: ''),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Famílias Cadastradas',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Cadastradas: ${_families.length}',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildFamilyList(),
-            const SizedBox(height: 20),
-            _buildFiltersSection(),
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                '© 2024 Ong Conforme',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddFamilyDialog,
-        backgroundColor: Colors.blue,
-        tooltip: 'Adicionar Família',
-        child: Icon(Icons.add),
-      ),
-    );
-  }
-}
 
+ @override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Color.fromRGBO(245, 245, 249, 1),
+    appBar: CustomAppBar(title: ''),
+    body: SingleChildScrollView(  // Adiciona o SingleChildScrollView
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Famílias Cadastradas',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Cadastradas: ${_families.length}',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildFamilyList(),
+          const SizedBox(height: 20),
+          _buildFiltersSection(),
+          const SizedBox(height: 20),
+          Center(
+            child: Text(
+              '© 2024 Ong Conforme',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+        ],
+      ),
+    ),
+    floatingActionButton: FloatingActionButton(
+      onPressed: _showAddFamilyDialog,
+      backgroundColor: Colors.blue,
+      tooltip: 'Adicionar Família',
+      child: Icon(Icons.add),
+    ),
+  );
+}
+}
