@@ -198,8 +198,10 @@ class FamiliesPage extends StatefulWidget {
 }
 
 class _FamiliesPageState extends State<FamiliesPage> {
-  List<Family> _families = []; // Lista de famílias cadastradas
+  List<Family> _families = []; // Lista original de famílias
+  List<Family> _filteredFamilies = []; // Lista de famílias filtradas
   final bool _isFiltersExpanded = false;
+  String _searchQuery = ''; // Variável para armazenar o texto da pesquisa
   Map<String, bool> parentescoOptions = {
     'Todos': true,
     'Responsável': false,
@@ -233,6 +235,7 @@ class _FamiliesPageState extends State<FamiliesPage> {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
           _families = data.map((json) => Family.fromJson(json)).toList();
+          _filteredFamilies = List.from(_families); // Inicializa a lista filtrada com todas as famílias
         });
       } else {
         throw Exception('Erro ao buscar famílias');
@@ -242,6 +245,7 @@ class _FamiliesPageState extends State<FamiliesPage> {
     }
   }
 
+  // Função para adicionar uma nova família
   Future<void> _adicionarFamilia(Family family) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
@@ -259,9 +263,7 @@ class _FamiliesPageState extends State<FamiliesPage> {
       if (response.statusCode == 201) {
         _buscarFamilias(); // Atualiza a lista de famílias
       } else {
-        // Exibir detalhes do erro de resposta
-        print(
-            'Erro ao adicionar família: ${response.statusCode} - ${response.body}');
+        print('Erro ao adicionar família: ${response.statusCode} - ${response.body}');
         throw Exception('Erro ao adicionar família');
       }
     } catch (e) {
@@ -269,7 +271,7 @@ class _FamiliesPageState extends State<FamiliesPage> {
     }
   }
 
-  // Função para excluir uma família por ID
+  // Função para excluir uma família
   Future<void> _excluirFamilia(String id) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
@@ -376,7 +378,27 @@ class _FamiliesPageState extends State<FamiliesPage> {
     );
   }
 
-  // Widget para a tabela de famílias
+  // Função para buscar famílias com base na pesquisa
+  Widget _buildSearchField() {
+    return TextField(
+      onChanged: (query) {
+        setState(() {
+          _searchQuery = query;
+          _filteredFamilies = _families.where((family) {
+            return family.respName.toLowerCase().contains(query.toLowerCase()) ||
+                   family.respSobrenome.toLowerCase().contains(query.toLowerCase());
+          }).toList();
+        });
+      },
+      decoration: InputDecoration(
+        labelText: 'Pesquisar por nome',
+        prefixIcon: Icon(Icons.search),
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
+
+  // Widget para exibir a lista de famílias
   Widget _buildFamilyList() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -389,7 +411,7 @@ class _FamiliesPageState extends State<FamiliesPage> {
           DataColumn(label: Text("Telefone")),
           DataColumn(label: Text("Email")),
         ],
-        rows: _families.map((family) {
+        rows: _filteredFamilies.map((family) {
           return DataRow(cells: [
             DataCell(Text(family.id.toString())),
             DataCell(Text(family.respName)),
@@ -464,17 +486,14 @@ class _FamiliesPageState extends State<FamiliesPage> {
                   selectedGender = value!;
                 });
               },
+              decoration: InputDecoration(labelText: 'Selecionar Gênero'),
             ),
-            Text('Idade', style: TextStyle(fontWeight: FontWeight.bold)),
             RangeSlider(
               values: ageRange,
               min: 0,
-              max: 120,
-              divisions: 12,
-              labels: RangeLabels(
-                '${ageRange.start.round()}',
-                '${ageRange.end.round()}',
-              ),
+              max: 100,
+              divisions: 100,
+              labels: RangeLabels(ageRange.start.round().toString(), ageRange.end.round().toString()),
               onChanged: (RangeValues values) {
                 setState(() {
                   ageRange = values;
@@ -497,6 +516,8 @@ class _FamiliesPageState extends State<FamiliesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildSearchField(), // Campo de pesquisa
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -505,11 +526,10 @@ class _FamiliesPageState extends State<FamiliesPage> {
                   children: [
                     Text(
                       'Famílias Cadastradas',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      'Cadastradas: ${_families.length}',
+                      'Cadastradas: ${_filteredFamilies.length}',
                       style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   ],
@@ -517,9 +537,9 @@ class _FamiliesPageState extends State<FamiliesPage> {
               ],
             ),
             const SizedBox(height: 20),
-            _buildFamilyList(),
+            _buildFamilyList(), // Exibe a lista filtrada
             const SizedBox(height: 20),
-            _buildFiltersSection(),
+            _buildFiltersSection(), // Seção de filtros
             const SizedBox(height: 20),
             Center(
               child: Text(
@@ -539,4 +559,3 @@ class _FamiliesPageState extends State<FamiliesPage> {
     );
   }
 }
-
