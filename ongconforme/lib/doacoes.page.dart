@@ -197,8 +197,10 @@ Future<void> editarDoacao(int index, Doacao doacao) async {
       },
       body: jsonEncode(dadosEditar), // Envia os dados no corpo da requisição
     );
+  
 
     if (response.statusCode == 200) {
+      print('Editado com sucesso');
       setState(() {
         _doacoes[index] = doacao; // Atualiza a lista localmente
       });
@@ -257,6 +259,7 @@ Future<void> removerDoacao(int index) async {
         'id': doacao.id,  // Passando o ID da doação no corpo da requisição
       }),
     );
+    print('Deletado com sucesso');
 
     if (response.statusCode == 200) {
       setState(() {

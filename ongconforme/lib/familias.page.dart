@@ -7,6 +7,7 @@ import 'login.page.dart';
 import 'doacoes.page.dart';
 import 'dashboard.page.dart';
 
+ 
 // Classe para representar uma família
 class Family {
   final int id;
@@ -17,7 +18,7 @@ class Family {
   final String respEmail;
   final String familyDesc;
   final int enderecoId;
-
+ 
   Family({
     required this.id,
     required this.respName,
@@ -28,7 +29,7 @@ class Family {
     required this.familyDesc,
     required this.enderecoId,
   });
-
+ 
   factory Family.fromJson(Map<String, dynamic> json) {
     return Family(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id'] ?? '0') ?? 0,
@@ -43,7 +44,7 @@ class Family {
           : int.tryParse(json['endereco_id'] ?? '0') ?? 0,
     );
   }
-
+ 
   Map<String, dynamic> toJson() => {
         'id': id,
         'resp_name': respName,
@@ -55,13 +56,13 @@ class Family {
         'endereco_id': enderecoId,
       };
 }
-
-
+ 
+ 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-
+ 
   const CustomAppBar({super.key, required this.title});
-
+ 
   void _navigateToPage(BuildContext context, String page) {
     switch (page) {
       case 'Dashboard':
@@ -87,7 +88,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         break;
     }
   }
-
+ 
   void _showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -115,21 +116,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       },
     );
   }
-
-  Future<void> _logout(BuildContext context) async {
-    // Limpa o estado de login armazenado em SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('tokenJWT');
-    await prefs.remove('manterConectado');
-
-    // Redireciona para a tela de login
+ 
+  void _logout(BuildContext context) {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginFormPage()),
       (route) => false,
     );
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -182,31 +177,32 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         IconButton(
           icon: Icon(Icons.logout),
-          onPressed: () async {
-            await _logout(context); // Chama o método de logout
+          onPressed: () {
+            _logout(context);
           },
         ),
       ],
       iconTheme: IconThemeData(color: Colors.white),
     );
   }
-
+ 
   @override
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
-
-
-
+ 
+ 
 class FamiliesPage extends StatefulWidget {
   const FamiliesPage({super.key});
-
+ 
   @override
   _FamiliesPageState createState() => _FamiliesPageState();
 }
-
+ 
 class _FamiliesPageState extends State<FamiliesPage> {
-  List<Family> _families = []; // Lista de famílias cadastradas
+  List<Family> _families = []; // Lista original de famílias
+  List<Family> _filteredFamilies = []; // Lista de famílias filtradas
   final bool _isFiltersExpanded = false;
+  String _searchQuery = ''; // Variável para armazenar o texto da pesquisa
   Map<String, bool> parentescoOptions = {
     'Todos': true,
     'Responsável': false,
@@ -215,198 +211,18 @@ class _FamiliesPageState extends State<FamiliesPage> {
   };
   String selectedGender = 'Todos';
   RangeValues ageRange = const RangeValues(5, 95);
-
+ 
   @override
   void initState() {
     super.initState();
     _buscarFamilias();
   }
-Future<int> _cadastrarEndereco(
-  String logradouro,
-  String bairro,
-  String cidade,
-  String estado,
-  String cep,
-) async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('tokenJWT');
-
-  try {
-    final response = await http.post(
-      Uri.parse('https://backend-ong.vercel.app/api/addEndereco'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'logradouro': logradouro,
-        'bairro': bairro,
-        'cidade': cidade,
-        'estado': estado,
-        'cep': cep,
-      }),
-    );
-
-    if (response.statusCode == 201) {
-      final responseData = jsonDecode(response.body);
-      return responseData['id']; // Retorna o id do endereço cadastrado
-    } else {
-      final errorResponse = jsonDecode(response.body);
-      throw Exception(
-          'Erro ao cadastrar endereço: ${response.statusCode}, ${errorResponse['message']}');
-    }
-  } catch (e) {
-    print('Erro ao cadastrar endereço: $e');
-    throw Exception('Erro inesperado ao cadastrar endereço.');
-  }
-}
-
-Future<void> _adicionarFamiliaComEndereco({
-  required String respName,
-  required String respSobrenome,
-  required String respCpf,
-  required String respTelefone,
-  required String respEmail,
-  required String familyDesc,
-  required String logradouro,
-  required String bairro,
-  required String cidade,
-  required String estado,
-  required String cep,
-}) async {
-  try {
-    // Cadastra o endereço e obtém o ID
-    final enderecoId = await _cadastrarEndereco(
-      logradouro,
-      bairro,
-      cidade,
-      estado,
-      cep,
-    );
-
-    // Envia os dados da família com o endereco_id
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
-
-    final response = await http.post(
-      Uri.parse('https://backend-ong.vercel.app/api/addFamilia'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'respName': respName,
-        'respSobrenome': respSobrenome,
-        'respCpf': respCpf,
-        'respTelefone': respTelefone,
-        'respEmail': respEmail,
-        'familyDesc': familyDesc,
-        'endereco_id': enderecoId,
-      }),
-    );
-
-    if (response.statusCode == 201) {
-      print('Família cadastrada com sucesso!');
-      _buscarFamilias(); // Atualiza a lista de famílias
-    } else {
-      final errorResponse = jsonDecode(response.body);
-      throw Exception(
-          'Erro ao cadastrar família: ${response.statusCode}, ${errorResponse['message']}');
-    }
-  } catch (e) {
-    print('Erro ao cadastrar família com endereço: $e');
-    throw Exception('Erro inesperado ao cadastrar família.');
-  }
-}
-
-void _showAddFamilyDialog() {
-  String name = '';
-  String sobrenome = '';
-  String cpf = '';
-  String telefone = '';
-  String email = '';
-  String familyDesc = '';
-  String logradouro = '';
-  String bairro = '';
-  String cidade = '';
-  String estado = '';
-  String cep = '';
-  final formKey = GlobalKey<FormState>();
-
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('Cadastrar Família'),
-      content: Form(
-        key: formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildTextField('Nome do Responsável', (value) => name = value),
-              _buildTextField('Sobrenome do Responsável',
-                  (value) => sobrenome = value),
-              _buildTextField('CPF do Responsável', (value) => cpf = value),
-              _buildTextField('Telefone do Responsável',
-                  (value) => telefone = value),
-              _buildTextField('Email do Responsável', (value) => email = value),
-              _buildTextField(
-                  'Descrição da Família', (value) => familyDesc = value),
-              Divider(),
-              _buildTextField('Logradouro', (value) => logradouro = value),
-              _buildTextField('Bairro', (value) => bairro = value),
-              _buildTextField('Cidade', (value) => cidade = value),
-              _buildTextField('Estado', (value) => estado = value),
-              _buildTextField('CEP', (value) => cep = value),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (formKey.currentState!.validate()) {
-              formKey.currentState!.save();
-              _adicionarFamiliaComEndereco(
-                respName: name,
-                respSobrenome: sobrenome,
-                respCpf: cpf,
-                respTelefone: telefone,
-                respEmail: email,
-                familyDesc: familyDesc,
-                logradouro: logradouro,
-                bairro: bairro,
-                cidade: cidade,
-                estado: estado,
-                cep: cep,
-              );
-              Navigator.of(context).pop();
-            }
-          },
-          child: Text('Cadastrar'),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildTextField(String label, Function(String) onSaved) {
-  return TextFormField(
-    decoration: InputDecoration(labelText: label),
-    validator: (value) => value!.isEmpty ? 'Informe o $label' : null,
-    onSaved: (value) => onSaved(value!),
-  );
-}
-
+ 
   // Função para buscar famílias do backend
   Future<void> _buscarFamilias() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
-
+ 
     try {
       final response = await http.get(
         Uri.parse('https://backend-ong.vercel.app/api/getFamilias'),
@@ -415,11 +231,12 @@ Widget _buildTextField(String label, Function(String) onSaved) {
           'Authorization': 'Bearer $token',
         },
       );
-
+ 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
           _families = data.map((json) => Family.fromJson(json)).toList();
+          _filteredFamilies = List.from(_families); // Inicializa a lista filtrada com todas as famílias
         });
       } else {
         throw Exception('Erro ao buscar famílias');
@@ -428,74 +245,279 @@ Widget _buildTextField(String label, Function(String) onSaved) {
       print('Erro ao buscar famílias: $e');
     }
   }
+ 
 
-  
-Future<void> _excluirFamilia() async {
+ // Função para adicionar uma nova família com endereço
+Future<void> _adicionarFamiliaComEndereco({
+  required String respName,
+  required String respSobrenome,
+  required String respCpf,
+  required String respTelefone,
+  required String respEmail,
+  required String familyDesc,
+  required Map<String, String> endereco, // Endereço
+  required List<Map<String, dynamic>> membros, // Membros da família
+}) async {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('tokenJWT');
+  print('Token: $token'); // Verificando se o token é válido
 
   try {
-    if (selectedFamilyId == null) {
-      throw Exception('Nenhuma família selecionada');
-    }
+    // 1. Adicionar Endereço
+    final enderecoResponse = await http.post(
+      Uri.parse('https://backend-ong.vercel.app/api/addAddress'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(endereco),
+    );
 
+    print('Resposta de Adicionar Endereço: ${enderecoResponse.statusCode}'); // Print para verificar a resposta
+    if (enderecoResponse.statusCode == 200) {  // Verificando se o status é 200
+      final enderecoData = jsonDecode(enderecoResponse.body);
+      final int enderecoId = enderecoData['id']; // Obter o ID do endereço
+      print('ID do Endereço: $enderecoId'); // Verificando o ID do endereço
+
+      // 2. Adicionar Família com o ID do endereço
+      final familiaResponse = await http.post(
+        Uri.parse('https://backend-ong.vercel.app/api/addFamilia'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'respName': respName,
+          'respSobrenome': respSobrenome,
+          'respCpf': respCpf,
+          'respEmail': respEmail,
+          'respTelefone': respTelefone,
+          'familyDesc': familyDesc,
+          'endereco_id': enderecoId, // Inclui o ID do endereço aqui
+        }),
+      );
+
+      print('Resposta de Adicionar Família: ${familiaResponse.statusCode}'); // Print para verificar a resposta
+      if (familiaResponse.statusCode == 201) {
+        final familiaData = jsonDecode(familiaResponse.body);
+        final int familiaId = familiaData['id']; // Obter o ID da família
+        print('ID da Família: $familiaId'); // Verificando o ID da família
+
+        // 3. Adicionar Membros à Família
+        if (membros.isNotEmpty) {
+          final membrosResponse = await http.post(
+            Uri.parse('https://backend-ong.vercel.app/api/addMemberToFamilia'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'familyId': familiaId,
+              'newMembers': membros,
+            }),
+          );
+
+          print('Resposta de Adicionar Membros: ${membrosResponse.statusCode}'); // Print para verificar a resposta
+          if (membrosResponse.statusCode == 201) {
+            print('Membros adicionados com sucesso.');
+          } else {
+            print('Erro ao adicionar membros: ${membrosResponse.body}');
+          }
+        }
+        _buscarFamilias(); // Atualiza a lista de famílias
+      } else {
+        print('Erro ao adicionar família: ${familiaResponse.body}');
+      }
+    } else {
+      print('Erro ao adicionar endereço: ${enderecoResponse.body}');
+    }
+  } catch (e) {
+    print('Erro ao adicionar família com endereço: $e');
+  }
+}
+
+
+ 
+ Future<void> _excluirFamilia(String id) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
+print(id);
+  try {
     final response = await http.delete(
-      Uri.parse('https://backend-ong.vercel.app/api/deleteFamilyById'),
+      Uri.parse('https://backend-ong.vercel.app/api/deleteFamilyById?id=$id'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
     );
 
+
     if (response.statusCode == 200) {
-      _buscarFamilias();  // Atualiza a lista de famílias
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Família excluída com sucesso')));
+      print('Família excluída com sucesso.');
+      _buscarFamilias(); // Atualiza a lista de famílias
     } else {
+      print('Erro ao excluir família: ${response.statusCode}');
+      print('Resposta do servidor: ${response.body}');
       throw Exception('Erro ao excluir família');
     }
   } catch (e) {
     print('Erro ao excluir família: $e');
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao excluir família')));
   }
 }
-String? selectedFamilyId;  // Variável para armazenar o familyId selecionado
 
-void _setSelectedFamily(String familyId) {
-  setState(() {
-    selectedFamilyId = familyId;  // Define o familyId da família selecionada
-  });
-}
-
-void _showDeleteConfirmationDialog() {
+ void _confirmDelete(BuildContext context, int familyId) {
   showDialog(
     context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Confirmar Exclusão'),
-        content: Text('Você tem certeza de que deseja excluir esta família?'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();  // Fecha o diálogo
-            },
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              _excluirFamilia();  // Exclui a família usando o selectedFamilyId
-              Navigator.of(context).pop();  // Fecha o diálogo
-            },
-            child: Text('Excluir'),
-          ),
-        ],
-      );
-    },
+    builder: (context) => AlertDialog(
+      title: Text('Excluir Família'),
+      content: Text('Tem certeza que deseja excluir esta família?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancelar'),
+          style: ElevatedButton.styleFrom(foregroundColor: Colors.black),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            print('Excluindo família com ID: $familyId');
+            _excluirFamilia(familyId.toString());
+          },
+          child: Text('Excluir'),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+        ),
+      ],
+    ),
   );
 }
 
- 
 
- Widget _buildFamilyList() {
+  // Função para abrir o diálogo de adicionar família
+  void _showAddFamilyDialog() {
+    String name = '';
+    String sobrenome = '';
+    String cpf = '';
+    String telefone = '';
+    String email = '';
+    final formKey = GlobalKey<FormState>();
+ 
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cadastrar Família'),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Nome do Responsável'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Informe o nome' : null,
+                  onSaved: (value) => name = value!,
+                ),
+                TextFormField(
+                  decoration:
+                      InputDecoration(labelText: 'Sobrenome do Responsável'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Informe o sobrenome' : null,
+                  onSaved: (value) => sobrenome = value!,
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'CPF do Responsável'),
+                  validator: (value) => value!.isEmpty ? 'Informe o CPF' : null,
+                  onSaved: (value) => cpf = value!,
+                ),
+                TextFormField(
+                  decoration:
+                      InputDecoration(labelText: 'Telefone do Responsável'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Informe o telefone' : null,
+                  onSaved: (value) => telefone = value!,
+                ),
+                TextFormField(
+                  decoration:
+                      InputDecoration(labelText: 'Email do Responsável'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Informe o email' : null,
+                  onSaved: (value) => email = value!,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+  onPressed: () {
+    if (formKey.currentState!.validate()) {
+      formKey.currentState!.save();
+
+      // Exemplo de dados do endereço e membros
+      final endereco = {
+        'street': 'Rua Principal',
+        'number': '123',
+        'neighborhood': 'Centro',
+        'city': 'Joinville',
+        'state': 'SC',
+        'zipcode': '89200000',
+        'complement': 'Apartamento 202',
+      };
+
+      final membros = [
+        {'membro': 'João', 'genero': 'Masculino', 'idade': 30},
+        {'membro': 'Maria', 'genero': 'Feminino', 'idade': 25},
+      ];
+
+      _adicionarFamiliaComEndereco(
+        respName: name,
+        respSobrenome: sobrenome,
+        respCpf: cpf,
+        respTelefone: telefone,
+        respEmail: email,
+        familyDesc: 'Família Exemplo',
+        endereco: endereco,
+        membros: membros,
+      );
+
+      Navigator.of(context).pop(); // Fecha o diálogo
+    }
+  },
+  child: Text('Cadastrar'),
+),
+
+        ],
+      ),
+    );
+  }
+ 
+  // Função para buscar famílias com base na pesquisa
+  Widget _buildSearchField() {
+    return TextField(
+      onChanged: (query) {
+        setState(() {
+          _searchQuery = query;
+          _filteredFamilies = _families.where((family) {
+            return family.respName
+                .toLowerCase()
+                .startsWith(query.toLowerCase());
+          }).toList();
+        });
+      },
+      decoration: InputDecoration(
+        labelText: 'Pesquisar por nome',
+        prefixIcon: Icon(Icons.search),
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
+
+ 
+Widget _buildFamilyList() {
   return SingleChildScrollView(
     scrollDirection: Axis.horizontal,
     child: DataTable(
@@ -506,9 +528,9 @@ void _showDeleteConfirmationDialog() {
         DataColumn(label: Text("CPF")),
         DataColumn(label: Text("Telefone")),
         DataColumn(label: Text("Email")),
-        DataColumn(label: Text("Ações")),  // Coluna de ações
+        DataColumn(label: Text("Ações")), // Nova coluna para ações
       ],
-      rows: _families.map((family) {
+      rows: _filteredFamilies.map((family) {
         return DataRow(cells: [
           DataCell(Text(family.id.toString())),
           DataCell(Text(family.respName)),
@@ -517,14 +539,15 @@ void _showDeleteConfirmationDialog() {
           DataCell(Text(family.respTelefone)),
           DataCell(Text(family.respEmail)),
           DataCell(
-            IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
-              onPressed: () {
-                // Atribui o ID da família selecionada
-                _setSelectedFamily(family.id.toString());
-                // Exibe a confirmação de exclusão
-                _showDeleteConfirmationDialog();
-              },
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.red),
+                  onPressed: () {
+                    _confirmDelete(context, family.id); // Confirmação antes de excluir
+                  },
+                ),
+              ],
             ),
           ),
         ]);
@@ -532,103 +555,122 @@ void _showDeleteConfirmationDialog() {
     ),
   );
 }
+// Variável para armazenar a opção de filtro (Todos, Telefone, ou CPF)
+String _filterOption = 'todos'; // Definindo 'todos' como a opção padrão
 
-
-  // Widget para a seção de filtros
-  Widget _buildFiltersSection() {
-    return ExpansionTile(
-      title: Text(
-        'Filtros',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Parentesco', style: TextStyle(fontWeight: FontWeight.bold)),
-            CheckboxListTile(
-              title: Text('Todos'),
-              value: parentescoOptions['Todos'],
-              onChanged: (value) {
-                setState(() {
-                  parentescoOptions['Todos'] = value!;
-                });
-              },
-            ),
-            CheckboxListTile(
-              title: Text('Responsável'),
-              value: parentescoOptions['Responsável'],
-              onChanged: (value) {
-                setState(() {
-                  parentescoOptions['Responsável'] = value!;
-                });
-              },
-            ),
-            CheckboxListTile(
-              title: Text('Filho'),
-              value: parentescoOptions['Filho'],
-              onChanged: (value) {
-                setState(() {
-                  parentescoOptions['Filho'] = value!;
-                });
-              },
-            ),
-            CheckboxListTile(
-              title: Text('Outro'),
-              value: parentescoOptions['Outro'],
-              onChanged: (value) {
-                setState(() {
-                  parentescoOptions['Outro'] = value!;
-                });
-              },
-            ),
-            Text('Gênero', style: TextStyle(fontWeight: FontWeight.bold)),
-            DropdownButtonFormField<String>(
-              value: selectedGender,
-              items: const [
-                DropdownMenuItem(value: 'Todos', child: Text('Todos')),
-                DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-                DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
+// Função de filtro com três opções: Todos, Telefone, ou CPF
+_buildFilterButton() {
+  return ElevatedButton.icon(
+    onPressed: () {
+      showDialog(
+        context: context,
+        builder: (context) {
+          TextEditingController filterController = TextEditingController();
+          return AlertDialog(
+            title: Text('Filtrar por Telefone, CPF ou Todos'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Campo de texto para digitar o filtro
+                TextField(
+                  controller: filterController,
+                  decoration: InputDecoration(
+                    labelText: 'Digite o Telefone ou CPF',
+                  ),
+                ),
+                // Botões de opção para escolher entre Todos, Telefone ou CPF
+                ListTile(
+                  title: Text('Filtrar por Telefone'),
+                  leading: Radio<String>(
+                    value: 'telefone',
+                    groupValue: _filterOption,
+                    onChanged: (value) {
+                      setState(() {
+                        _filterOption = value!;
+                      });
+                    },
+                  ),
+                ),
+                ListTile(
+                  title: Text('Filtrar por CPF'),
+                  leading: Radio<String>(
+                    value: 'cpf',
+                    groupValue: _filterOption,
+                    onChanged: (value) {
+                      setState(() {
+                        _filterOption = value!;
+                      });
+                    },
+                  ),
+                ),
+                ListTile(
+                  title: Text('Exibir Todos'),
+                  leading: Radio<String>(
+                    value: 'todos',
+                    groupValue: _filterOption,
+                    onChanged: (value) {
+                      setState(() {
+                        _filterOption = value!;
+                      });
+                    },
+                  ),
+                ),
               ],
-              onChanged: (value) {
-                setState(() {
-                  selectedGender = value!;
-                });
-              },
             ),
-            Text('Idade', style: TextStyle(fontWeight: FontWeight.bold)),
-            RangeSlider(
-              values: ageRange,
-              min: 0,
-              max: 120,
-              divisions: 12,
-              labels: RangeLabels(
-                '${ageRange.start.round()}',
-                '${ageRange.end.round()}',
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Fecha o diálogo ao cancelar
+                },
+                child: Text('Cancelar'),
               ),
-              onChanged: (RangeValues values) {
-                setState(() {
-                  ageRange = values;
-                });
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    final query = filterController.text.toLowerCase();
+                    // Filtra com base na opção selecionada (Telefone, CPF ou Todos)
+                    if (_filterOption == 'telefone') {
+                      _filteredFamilies = _families.where((family) {
+                        return family.respTelefone.contains(query); // Filtra pelo número de telefone
+                      }).toList();
+                    } else if (_filterOption == 'cpf') {
+                      _filteredFamilies = _families.where((family) {
+                        return family.respCpf.contains(query); // Filtra pelo CPF
+                      }).toList();
+                    } else if (_filterOption == 'todos') {
+                      _filteredFamilies = List.from(_families); // Exibe todas as famílias
+                    }
+                  });
+                  Navigator.pop(context); // Fecha o diálogo após aplicar o filtro
+                },
+                child: Text('Filtrar'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+    icon: Icon(Icons.filter_list),
+    label: Text('Filtrar'),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.blue, // Cor de fundo
+      foregroundColor: Colors.white, // Cor do texto e ícone
+    ),
+  );
+}
 
-
- @override
+@override
 Widget build(BuildContext context) {
   return Scaffold(
     backgroundColor: Color.fromRGBO(245, 245, 249, 1),
     appBar: CustomAppBar(title: ''),
-    body: SingleChildScrollView(  // Adiciona o SingleChildScrollView
+    body: Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildSearchField(), // Campo de pesquisa
+          const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -640,17 +682,16 @@ Widget build(BuildContext context) {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    'Cadastradas: ${_families.length}',
+                    'Cadastradas: ${_filteredFamilies.length}',
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ],
               ),
+              _buildFilterButton(), // Botão de filtro
             ],
           ),
           const SizedBox(height: 20),
-          _buildFamilyList(),
-          const SizedBox(height: 20),
-          _buildFiltersSection(),
+          _buildFamilyList(), // Exibe a lista filtrada
           const SizedBox(height: 20),
           Center(
             child: Text(
@@ -664,9 +705,11 @@ Widget build(BuildContext context) {
     floatingActionButton: FloatingActionButton(
       onPressed: _showAddFamilyDialog,
       backgroundColor: Colors.blue,
+      foregroundColor: Colors.white,
       tooltip: 'Adicionar Família',
       child: Icon(Icons.add),
     ),
   );
 }
+
 }
