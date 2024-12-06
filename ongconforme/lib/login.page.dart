@@ -216,8 +216,10 @@ Widget build(BuildContext context) {
                     // Campo de Email
                     TextFormField(
                       controller: emailController,
+                      cursorColor: Colors.blue, // Cor do cursor alterada para azul
                       decoration: InputDecoration(
                         labelText: 'Email',
+                        labelStyle: TextStyle(color: const Color.fromARGB(255, 44, 44, 44)), // Cor do rótulo quando não está em foco
                         prefixIcon: Icon(Icons.email, size: 18),
                         border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
@@ -239,13 +241,16 @@ Widget build(BuildContext context) {
                     TextFormField(
                       controller: passwordController,
                       obscureText: true,
+                      cursorColor: Colors.blue, // Cor do cursor alterada para azul
                       decoration: InputDecoration(
                         labelText: 'Senha',
+                        labelStyle: TextStyle(color: const Color.fromARGB(255, 44, 44, 44)), // Cor do rótulo quando não está em foco
                         prefixIcon: Icon(Icons.lock, size: 18),
                         border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(color: Colors.blue, width: 2),
                         ),
+                        
                       ),
                       style: TextStyle(fontSize: 14),
                       validator: (value) {

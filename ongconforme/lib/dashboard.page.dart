@@ -13,7 +13,9 @@ import 'dart:ui';
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
 
+
   const CustomAppBar({super.key, required this.title});
+
 
   void _navigateToPage(BuildContext context, String page) {
     switch (page) {
@@ -40,6 +42,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         break;
     }
   }
+
 
   void _showSearchDialog(BuildContext context) {
     showDialog(
@@ -69,11 +72,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
+
   Future<void> _logout(BuildContext context) async {
     // Limpa o estado de login armazenado em SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('tokenJWT');
     await prefs.remove('manterConectado');
+
 
     // Redireciona para a tela de login
     Navigator.pushAndRemoveUntil(
@@ -82,6 +87,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       (route) => false,
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -133,20 +139,37 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             _showSearchDialog(context);
           },
         ),
-        IconButton(
-          icon: Icon(Icons.logout),
-          onPressed: () async {
-            await _logout(context); // Chama o método de logout
+        // Ícone de usuário que exibe opções
+        PopupMenuButton<String>(
+          icon: Icon(Icons.account_circle),
+          onSelected: (value) {
+            if (value == 'Logout') {
+              _logout(context); // Chama o método de logout
+            }
           },
+          itemBuilder: (BuildContext context) => [
+            PopupMenuItem<String>(
+              value: 'Logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, color: Colors.red),
+                  SizedBox(width: 10),
+                  Text('Logout'),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
       iconTheme: IconThemeData(color: Colors.white),
     );
   }
 
+
   @override
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
+
 
 
 class DashboardPage extends StatefulWidget {
@@ -179,37 +202,41 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Função para obter a arrecadação total e a meta
   Future<void> _obterArrecadacaoTotal() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
 
-    try {
-      final response = await http.get(
-        Uri.parse('https://backend-ong.vercel.app/api/getMetaFixa?id=1'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+  try {
+    final response = await http.post(
+      Uri.parse('https://backend-ong.vercel.app/api/getMetaFixa'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'id': 34,  // Passando o ID no corpo da requisição
+      }),
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
 
-        if (data.isNotEmpty) {
-          final item = data[0];
+      if (data.isNotEmpty) {
+        final item = data[0];
 
-          setState(() {
-            metaTotal = item['qntdMetaAll']?.toInt() ?? metaTotal;
-          });
-        } else {
-          print('Lista de dados vazia');
-        }
+        setState(() {
+          metaTotal = item['qntdMetaAll']?.toInt() ?? metaTotal;
+        });
       } else {
-        print('Erro ao obter meta fixa: ${response.statusCode}');
+        print('Lista de dados vazia');
       }
-    } catch (e) {
-      print('Erro ao conectar à API de meta fixa: $e');
+    } else {
+      print('Erro ao obter meta fixa: ${response.statusCode}');
     }
+  } catch (e) {
+    print('Erro ao conectar à API de meta fixa: $e');
   }
+}
+
 
   // Função para obter atividades recentes
   Future<void> _obterAtividadesRecentes() async {
@@ -260,6 +287,87 @@ class _DashboardPageState extends State<DashboardPage> {
       (route) => false,
     );
   }
+  void _editarArrecadacao(BuildContext context) {
+  TextEditingController controller = TextEditingController(text: arrecadacaoTotal.toString());
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: Colors.white, // Card branco
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12), // Bordas arredondadas no card
+        ),
+        title: Text(
+          'Editar Arrecadação',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color.fromARGB(255, 5, 5, 5), // Cor azul para o título
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Novo valor de arrecadação
+              TextFormField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Novo valor',
+                  labelStyle: TextStyle(color: const Color.fromARGB(255, 119, 119, 119), fontWeight: FontWeight.w500), // Cor da label
+                  fillColor: Colors.grey[200], // Cor de fundo cinza
+                  filled: true, // Aplica a cor de fundo
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.blue, width: 2), // Borda azul no foco
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0), // Borda padrão cinza
+                  ),
+                ),
+                validator: (value) =>
+                    value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          // Botão Cancelar
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(
+                color: const Color.fromARGB(255, 65, 65, 65), // Cor do botão cancelar
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          // Botão Salvar
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                arrecadacaoTotal = int.tryParse(controller.text) ?? arrecadacaoTotal;
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue, // Cor de fundo do botão
+              foregroundColor: Colors.white, // Cor do texto no botão
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8), // Bordas arredondadas
+              ),
+            ),
+            child: Text('Salvar'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -269,7 +377,7 @@ class _DashboardPageState extends State<DashboardPage> {
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,6 +391,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
+                    
 
                     // Arrecadação Total
                     _buildArrecadacaoTotal(),
@@ -308,7 +417,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Card(
       elevation: 0.5,
-      color: Colors.white,
+      color: const Color.fromARGB(255, 255, 255, 255),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(5),
       ),
@@ -345,8 +454,17 @@ class _DashboardPageState extends State<DashboardPage> {
                           fontSize: 30,
                           fontWeight: FontWeight.bold,
                           color: Color.fromRGBO(42, 48, 66, 1.0),
+                          
                         ),
                       ),
+                        IconButton(
+                icon: Icon(Icons.edit, color: Colors.blue, ),
+                onPressed: () => _editarArrecadacao(context),
+                splashColor: Colors.blue.withOpacity(0.1),
+                
+              ),
+            
+          
                       const SizedBox(height: 1),
                       Text(
                         '${porcentagemArrecadada.toStringAsFixed(1)}% da meta',

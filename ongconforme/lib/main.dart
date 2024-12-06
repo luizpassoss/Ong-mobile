@@ -16,10 +16,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Ong Conforme',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+       theme: ThemeData(
+        popupMenuTheme: PopupMenuThemeData(
+          color: Colors.white, // Define o fundo branco globalmente
+        ),
       ),
+      title: 'Ong Conforme',
+      
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {

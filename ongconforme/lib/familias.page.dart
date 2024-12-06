@@ -763,7 +763,7 @@ Widget build(BuildContext context) {
     ),
     floatingActionButton: FloatingActionButton(
       onPressed: _showAddFamilyDialog,
-      backgroundColor: Colors.blue,
+      backgroundColor: const Color.fromARGB(255, 12, 56, 92),
       tooltip: 'Adicionar Família',
       child: Icon(
         Icons.add,

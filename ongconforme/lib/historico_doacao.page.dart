@@ -10,13 +10,13 @@ import 'doacoes.page.dart';
 import 'dashboard.page.dart';
 import 'dart:ui';
 
-
 class Historico {
   final int id;
   final String data;
   final int qntd;
   final String tipoMov;
   final String doadorName;
+  final int doacaoId;  // Campo doacao_id
 
   Historico({
     required this.id,
@@ -24,6 +24,7 @@ class Historico {
     required this.qntd,
     required this.tipoMov,
     required this.doadorName,
+    required this.doacaoId,  // Adicionando o campo doacaoId
   });
 
   factory Historico.fromJson(Map<String, dynamic> json) {
@@ -33,6 +34,7 @@ class Historico {
       qntd: json['qntd'],
       tipoMov: json['tipoMov'],
       doadorName: json['doadorName'],
+      doacaoId: json['doacao_id'],  // Mapeando o campo doacao_id
     );
   }
 
@@ -43,6 +45,7 @@ class Historico {
       'qntd': qntd,
       'tipoMov': tipoMov,
       'doadorName': doadorName,
+      'doacao_id': doacaoId,  // Incluindo o campo doacao_id
     };
   }
 }
@@ -69,39 +72,73 @@ class _HistoricoDoacoesPageState extends State<HistoricoDoacoesPage> {
     metaController.text = metaTotal.toString();
     dataMetaController.text = "20, setembro de 2024"; // Exemplo
     _fetchHistorico(); // Carrega o histórico ao inicializar
+    _fetchMeta(); // Carrega a meta ao inicializar
   }
 
   // Função para buscar o histórico do backend
-  Future<void> _fetchHistorico() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
+Future<void> _fetchHistorico() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
 
-    try {
-      final response = await http.post(
-        Uri.parse('https://backend-ong.vercel.app/api/getHistoricoByCategoria'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({"doacao_id": widget.doacao.id}),
-      );
+  try {
+    final response = await http.post(
+      Uri.parse('https://backend-ong.vercel.app/api/getHistoricoByCategoria'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({"doacao_id": widget.doacao.id}),
+    );
 
-      if (response.statusCode == 200) {
-        List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          historicoList = data.map((item) => Historico.fromJson(item)).toList();
-          arrecadacaoAtual =
-              historicoList.fold(0, (sum, item) => sum + item.qntd);
-        });
-      } else {
-        throw Exception('Erro ao buscar o histórico');
-      }
-    } catch (e) {
-      print('Erro ao buscar o histórico: $e');
+    print('Status Code: ${response.statusCode}'); // Verifique o status code
+    print('Response Body: ${response.body}'); // Verifique o corpo da resposta
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      setState(() {
+        historicoList = data.map((item) => Historico.fromJson(item)).toList();
+        arrecadacaoAtual = historicoList.fold(0, (sum, item) => sum + item.qntd);
+      });
+    } else {
+      throw Exception('Erro ao buscar o histórico');
     }
+  } catch (e) {
+    print('Erro ao buscar o histórico: $e');
   }
+}
 
-  // Função para atualizar a meta no backend
+// Função para buscar a meta fixa da doação
+Future<void> _fetchMeta() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('tokenJWT');
+
+  try {
+    final response = await http.post(
+      Uri.parse('https://backend-ong.vercel.app/api/getMetaFixa'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({"id": widget.doacao.id}),
+    );
+
+    print('Status Code: ${response.statusCode}'); // Verifique o status code
+    print('Response Body: ${response.body}'); // Verifique o corpo da resposta
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        metaTotal = data['qntdMetaAll']?.toDouble() ?? metaTotal;
+      });
+    } else {
+      throw Exception('Erro ao buscar a meta fixa');
+    }
+  } catch (e) {
+    print('Erro ao buscar a meta fixa: $e');
+  }
+}
+
+  // Função para atualizar a meta da doação
   Future<void> _atualizarMeta() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
@@ -110,12 +147,16 @@ class _HistoricoDoacoesPageState extends State<HistoricoDoacoesPage> {
     try {
       final response = await http.patch(
         Uri.parse(
-            'https://backend-ong.vercel.app/api/updateMetaInDoacao/${widget.doacao.id}'),
+            'https://backend-ong.vercel.app/api/updateMetaInDoacao'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({"meta": novaMeta}),
+        body: jsonEncode({
+          "metaQntd": novaMeta,
+          "metaDate": dataMetaController.text,
+          "doacao_id": widget.doacao.id,
+        }),
       );
 
       if (response.statusCode == 200) {
@@ -130,53 +171,37 @@ class _HistoricoDoacoesPageState extends State<HistoricoDoacoesPage> {
     }
   }
 
-  // Função para adicionar novo histórico
-  Future<void> _adicionarHistorico(Historico historico) async {
+  // Função para atualizar a meta fixa
+  Future<void> _atualizarMetaFixa() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
+    final nome = widget.doacao.itemName;
+    final novaMetaTotal = int.tryParse(metaController.text) ?? metaTotal;
 
     try {
-      final response = await http.post(
-        Uri.parse('https://backend-ong.vercel.app/api/addHistorico'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(historico.toJson()),
-      );
-
-      if (response.statusCode == 201) {
-        _fetchHistorico(); // Recarrega o histórico
-      } else {
-        throw Exception('Erro ao adicionar histórico');
-      }
-    } catch (e) {
-      print('Erro ao adicionar histórico: $e');
-    }
-  }
-
-  // Função para remover histórico
-  Future<void> _removerHistorico(int historicoId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('tokenJWT');
-
-    try {
-      final response = await http.delete(
+      final response = await http.patch(
         Uri.parse(
-            'https://backend-ong.vercel.app/api/deleteSingleHistorico/$historicoId'),
+            'https://backend-ong.vercel.app/api/updateMetaFixa'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
+        body: jsonEncode({
+          "id": widget.doacao.id,
+          "nome": nome,
+          "qntdMetaAll": novaMetaTotal,
+        }),
       );
 
       if (response.statusCode == 200) {
-        _fetchHistorico(); // Recarrega o histórico
+        setState(() {
+          metaTotal = novaMetaTotal.toDouble();
+        });
       } else {
-        throw Exception('Erro ao remover histórico');
+        throw Exception('Erro ao atualizar a meta fixa');
       }
     } catch (e) {
-      print('Erro ao remover histórico: $e');
+      print('Erro ao atualizar a meta fixa: $e');
     }
   }
 
@@ -188,7 +213,7 @@ class _HistoricoDoacoesPageState extends State<HistoricoDoacoesPage> {
       backgroundColor: Color.fromRGBO(245, 245, 249, 1),
       appBar: CustomAppBar(title: ''),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,202 +251,145 @@ class _HistoricoDoacoesPageState extends State<HistoricoDoacoesPage> {
     );
   }
 
-  Widget _buildDadosDoacaoSection() {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Dados da Doação',
-              style: TextStyle(
-                color: Colors.purple,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
+Widget _buildDadosDoacaoSection() {
+  return Card(
+    color: Colors.white,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    elevation: 0.5,
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Dados da Doação',
+            style: TextStyle(
+              color: const Color.fromARGB(255, 0, 0, 0),
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
             ),
-            const SizedBox(height: 16),
-            Text(
-              widget.doacao.itemName,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.category, color: Colors.blue),
-                const SizedBox(width: 8),
-                Text('Categoria: ${widget.doacao.categoria}',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.inventory, color: Colors.blue),
-                const SizedBox(width: 8),
-                Text('Quantidade: ${widget.doacao.quantidade}'),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            widget.doacao.itemName,  // Exibindo nome do item
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.category, color: const Color.fromARGB(255, 0, 80, 145)),
+              const SizedBox(width: 8),
+              Text('Categoria: ${widget.doacao.categoria}'),  // Exibindo categoria
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Aqui vamos remover qualquer referência a 'descricao' que não existe
+          Text('Meta total: R\$ ${metaTotal.toStringAsFixed(2)}'),
+        ],
       ),
-    );
-  }
-
-  Widget _buildMetaDoacaoSection(double porcentagemArrecadada) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Meta da Doação',
-              style: TextStyle(
-                color: Colors.purple,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Arrecadação Atual',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            Text(
-              '${arrecadacaoAtual.toInt()} / ${metaTotal.toInt()}',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${porcentagemArrecadada.toStringAsFixed(1)}% da meta total',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-
-            // Gráfico Circular de Meta
-            Center(
-              child: SizedBox(
-                height: 100,
-                width: 100,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    PieChart(
-                      PieChartData(
-                        startDegreeOffset: 270,
-                        sectionsSpace: 0,
-                        centerSpaceRadius: 40,
-                        sections: [
-                          PieChartSectionData(
-                            value: porcentagemArrecadada,
-                            color: Colors.blue,
-                            radius: 18,
-                            title: '',
-                          ),
-                          PieChartSectionData(
-                            value: 100 - porcentagemArrecadada,
-                            color: Colors.grey.shade200,
-                            radius: 18,
-                            title: '',
-                          ),
-                        ],
-                        borderData: FlBorderData(show: false),
-                      ),
-                    ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '${porcentagemArrecadada.toStringAsFixed(0)}%',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Meta',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Configurar Meta
-            Text(
-              'Configurar Meta',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: metaController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Nova Meta',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.edit, color: Colors.blue),
-                  onPressed: _atualizarMeta,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: dataMetaController,
-              decoration: InputDecoration(
-                labelText: 'Data Meta',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHistoricoMovimentacoes() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: historicoList
-          .map((historico) => ListTile(
-                title: Text(historico.tipoMov),
-                subtitle: Text(
-                    'Doador: ${historico.doadorName} - Quantidade: ${historico.qntd}'),
-                trailing: IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _removerHistorico(historico.id),
-                ),
-              ))
-          .toList(),
-    );
-  }
+    ),
+  );
 }
+
+
+Widget _buildMetaDoacaoSection(double porcentagemArrecadada) {
+  return Card(
+    color: Colors.white,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    elevation: 0.5,
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Text(
+            'Meta de arrecadação',
+            style: TextStyle(
+              color: const Color.fromARGB(255, 0, 0, 0),
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Text(
+                'Meta total: ',
+                style: TextStyle(fontSize: 16),
+              ),
+              Text(
+                'R\$ ${metaTotal.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Arrecadado: R\$ ${arrecadacaoAtual.toStringAsFixed(2)}',
+            style: TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: porcentagemArrecadada / 100,
+            color: Colors.blue,
+            backgroundColor: Colors.grey[300],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${porcentagemArrecadada.toStringAsFixed(2)}% da meta alcançada',
+            style: TextStyle(fontSize: 16),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildHistoricoMovimentacoes() {
+  return Card(
+    color: Colors.white,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    elevation: 0.5,
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Histórico de Movimentações',
+            style: TextStyle(
+              color: const Color.fromARGB(255, 0, 0, 0),
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ListView.builder(
+            itemCount: historicoList.length,
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemBuilder: (context, index) {
+              final historico = historicoList[index];
+              return ListTile(
+                title: Text(historico.doadorName),
+                subtitle: Text(historico.tipoMov),
+                trailing: Text('R\$ ${historico.qntd}'),
+              );
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+}
+
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
 
+
   const CustomAppBar({super.key, required this.title});
+
 
   void _navigateToPage(BuildContext context, String page) {
     switch (page) {
@@ -448,6 +416,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         break;
     }
   }
+
 
   void _showSearchDialog(BuildContext context) {
     showDialog(
@@ -477,11 +446,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
+
   Future<void> _logout(BuildContext context) async {
     // Limpa o estado de login armazenado em SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('tokenJWT');
     await prefs.remove('manterConectado');
+
 
     // Redireciona para a tela de login
     Navigator.pushAndRemoveUntil(
@@ -490,6 +461,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       (route) => false,
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -541,16 +513,32 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             _showSearchDialog(context);
           },
         ),
-        IconButton(
-          icon: Icon(Icons.logout),
-          onPressed: () async {
-            await _logout(context); // Chama o método de logout
+        // Ícone de usuário que exibe opções
+        PopupMenuButton<String>(
+          icon: Icon(Icons.account_circle),
+          onSelected: (value) {
+            if (value == 'Logout') {
+              _logout(context); // Chama o método de logout
+            }
           },
+          itemBuilder: (BuildContext context) => [
+            PopupMenuItem<String>(
+              value: 'Logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, color: Colors.red),
+                  SizedBox(width: 10),
+                  Text('Logout'),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
       iconTheme: IconThemeData(color: Colors.white),
     );
   }
+
 
   @override
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
@@ -573,5 +561,3 @@ class Footer extends StatelessWidget {
     );
   }
 }
-
-

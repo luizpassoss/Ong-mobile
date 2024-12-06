@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'login.page.dart';
 import 'familias.page.dart';
 import 'dart:ui';
+
 class Doacao {
   int id;
   String categoria;
@@ -305,59 +306,150 @@ Future<void> removerDoacao(int index) async {
 
 
 
+void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
+  final formKey = GlobalKey<FormState>();
+  int id = doacao.id;
+  String categoria = doacao.categoria;
+  String itemName = doacao.itemName;
+  String dataCreated = doacao.dataCreated;
+  int quantidade = doacao.quantidade;
+  int metaQuantidade = doacao.metaQuantidade;
+  String metaDate = doacao.metaDate;
 
-  void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
-    final formKey = GlobalKey<FormState>();
-    int id = doacao.id;
-    String categoria = doacao.categoria;
-    String itemName = doacao.itemName;
-    String dataCreated = doacao.dataCreated;
-    int quantidade = doacao.quantidade;
-    int metaQuantidade = doacao.metaQuantidade;
-    String metaDate = doacao.metaDate;
-
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Editar Doação'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                children: [
-                  TextFormField(
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.white, // Card branco
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12), // Bordas arredondadas no card
+        ),
+        title: Text(
+          'Editar Doação',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color.fromARGB(255, 5, 5, 5), // Cor do título
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ID
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TextFormField(
                     initialValue: id.toString(),
-                    decoration: InputDecoration(labelText: 'ID'),
+                    decoration: InputDecoration(
+                      labelText: 'ID',
+                      labelStyle: TextStyle(color: const Color.fromARGB(255, 16, 70, 114), fontWeight: FontWeight.w600),
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                      ),
+                    ),
+                    
                     onSaved: (value) => id = int.parse(value!),
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
-                  TextFormField(
+                ),
+                // Categoria
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TextFormField(
                     initialValue: categoria,
-                    decoration: InputDecoration(labelText: 'Categoria'),
+                    decoration: InputDecoration(
+                      labelText: 'Categoria',
+                      labelStyle: TextStyle(color: const Color.fromARGB(255, 16, 70, 114), fontWeight: FontWeight.w600),
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                      ),
+                    ),
                     onSaved: (value) => categoria = value!,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
-                  TextFormField(
+                ),
+                // Item
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TextFormField(
                     initialValue: itemName,
-                    decoration: InputDecoration(labelText: 'Item'),
+                    decoration: InputDecoration(
+                      labelText: 'Item',
+                     labelStyle: TextStyle(color: const Color.fromARGB(255, 16, 70, 114), fontWeight: FontWeight.w600),
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                      ),
+                    ),
                     onSaved: (value) => itemName = value!,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
-                  TextFormField(
+                ),
+                // Data de Criação
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TextFormField(
                     initialValue: dataCreated,
-                    decoration: InputDecoration(labelText: 'Data de Criação'),
+                    decoration: InputDecoration(
+                      labelText: 'Data de Criação',
+                      labelStyle: TextStyle(color: const Color.fromARGB(255, 16, 70, 114), fontWeight: FontWeight.w600),
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                      ),
+                    ),
                     onSaved: (value) => dataCreated = value!,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
-                  TextFormField(
+                ),
+                // Quantidade
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TextFormField(
                     initialValue: quantidade.toString(),
-                    decoration: InputDecoration(labelText: 'Quantidade'),
+                    decoration: InputDecoration(
+                      labelText: 'Quantidade',
+                      labelStyle: TextStyle(color: const Color.fromARGB(255, 16, 70, 114), fontWeight: FontWeight.w600),
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                      ),
+                    ),
                     keyboardType: TextInputType.number,
                     onSaved: (value) {
                       if (value != null && value.isNotEmpty) {
@@ -366,12 +458,28 @@ Future<void> removerDoacao(int index) async {
                         quantidade = 0;
                       }
                     },
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
-                  TextFormField(
+                ),
+                // Meta Quantidade
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TextFormField(
                     initialValue: metaQuantidade.toString(),
-                    decoration: InputDecoration(labelText: 'Meta Quantidade'),
+                    decoration: InputDecoration(
+                      labelText: 'Meta Quantidade',
+                    labelStyle: TextStyle(color: const Color.fromARGB(255, 16, 70, 114), fontWeight: FontWeight.w600),
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                      ),
+                    ),
                     keyboardType: TextInputType.number,
                     onSaved: (value) {
                       if (value != null && value.isNotEmpty) {
@@ -380,49 +488,79 @@ Future<void> removerDoacao(int index) async {
                         metaQuantidade = 0;
                       }
                     },
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
-                  TextFormField(
+                ),
+                // Data Meta
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TextFormField(
                     initialValue: metaDate,
-                    decoration: InputDecoration(labelText: 'Data Meta'),
+                    decoration: InputDecoration(
+                      labelText: 'Data Meta',
+                      labelStyle: TextStyle(color: const Color.fromARGB(255, 16, 70, 114), fontWeight: FontWeight.w600),
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                      ),
+                    ),
                     onSaved: (value) => metaDate = value!,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
+                    validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(
+                color: const Color.fromARGB(255, 65, 65, 65),
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancelar'),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                formKey.currentState!.save();
+                final novaDoacao = Doacao(
+                  id: id,
+                  categoria: categoria,
+                  itemName: itemName,
+                  dataCreated: dataCreated,
+                  quantidade: quantidade,
+                  metaQuantidade: metaQuantidade,
+                  metaDate: metaDate,
+                );
+                // Atualize o item na lista (isto depende de como você gerencia os dados)
+                Navigator.pop(context);
+              }
+            },
+            child: Text('Salvar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue, // Cor do botão
+              foregroundColor: Colors.white, // Cor do texto
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  formKey.currentState!.save();
-                  final novaDoacao = Doacao(
-                    id: id,
-                    categoria: categoria,
-                    itemName: itemName,
-                    dataCreated: dataCreated,
-                    quantidade: quantidade,
-                    metaQuantidade: metaQuantidade,
-                    metaDate: metaDate,
-                  );
-                  editarDoacao(index, novaDoacao);
-                  Navigator.pop(context);
-                }
-              },
-              child: Text('Salvar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
 
   @override
@@ -463,7 +601,7 @@ Future<void> removerDoacao(int index) async {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _mostrarDialogoAdicionarDoacao,
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color.fromARGB(255, 12, 56, 92),
         tooltip: 'Adicionar Doação',
         child: Icon(
           Icons.add,
