@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login.page.dart';
 import 'familias.page.dart';
-
+import 'dart:ui';
 class Doacao {
   int id;
   String categoria;
@@ -16,6 +16,7 @@ class Doacao {
   int quantidade;
   int metaQuantidade;
   String metaDate;
+
 
   Doacao({
     required this.id,
@@ -26,6 +27,7 @@ class Doacao {
     required this.metaQuantidade,
     required this.metaDate,
   });
+
 
   factory Doacao.fromJson(Map<String, dynamic> json) {
     return Doacao(
@@ -39,6 +41,7 @@ class Doacao {
     );
   }
 
+
   Map<String, dynamic> toJson() => {
         'categoria': categoria,
         'itemName': itemName,
@@ -49,12 +52,15 @@ class Doacao {
       };
 }
 
+
 class DoacoesPage extends StatefulWidget {
   const DoacoesPage({super.key});
+
 
   @override
   _DoacoesPageState createState() => _DoacoesPageState();
 }
+
 
 class _DoacoesPageState extends State<DoacoesPage> {
   List<Doacao> _doacoes = [];
@@ -62,11 +68,13 @@ class _DoacoesPageState extends State<DoacoesPage> {
   String _termoPesquisa = ''; // Termo de pesquisa
   String? _categoriaSelecionada; // Categoria selecionada para o filtro
 
+
   @override
   void initState() {
     super.initState();
     buscarDoacoes(); // Carrega as doações ao iniciar a página
   }
+
 
   void _filtrarDoacoes() {
     setState(() {
@@ -82,6 +90,7 @@ class _DoacoesPageState extends State<DoacoesPage> {
     });
   }
 
+
   void _filtrarPorTermoPesquisa(String termo) {
     setState(() {
       _termoPesquisa = termo;
@@ -91,10 +100,12 @@ class _DoacoesPageState extends State<DoacoesPage> {
     });
   }
 
+
 // Função para buscar todas as doações
   Future<void> buscarDoacoes() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
+
 
     try {
       final response = await http.get(
@@ -104,6 +115,7 @@ class _DoacoesPageState extends State<DoacoesPage> {
           'Authorization': 'Bearer $token',
         },
       );
+
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -119,10 +131,12 @@ class _DoacoesPageState extends State<DoacoesPage> {
     }
   }
 
+
   // Função para buscar uma doação específica
   Future<Doacao?> buscarDoacaoPorId(String id) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
+
 
     try {
       final response = await http.get(
@@ -132,6 +146,7 @@ class _DoacoesPageState extends State<DoacoesPage> {
           'Authorization': 'Bearer $token',
         },
       );
+
 
       if (response.statusCode == 200) {
         return Doacao.fromJson(jsonDecode(response.body));
@@ -145,9 +160,11 @@ class _DoacoesPageState extends State<DoacoesPage> {
     }
   }
 
+
   Future<void> adicionarDoacao(Doacao doacao) async {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('tokenJWT');
+
 
   try {
     final response = await http.post(
@@ -157,11 +174,12 @@ class _DoacoesPageState extends State<DoacoesPage> {
         'Authorization': 'Bearer $token',
       },
        body: jsonEncode(doacao.toJson()),
-  
+ 
     );
     print('Corpo da requisição: ${jsonEncode(doacao.toJson())}');
     print('Response status: ${response.statusCode}');
     print('Response body: ${response.body}');
+
 
     if (response.statusCode == 201) {
       buscarDoacoes();
@@ -176,10 +194,15 @@ class _DoacoesPageState extends State<DoacoesPage> {
 
 
 
+
+
+
+
  // Função para editar uma doação existente
 Future<void> editarDoacao(int index, Doacao doacao) async {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('tokenJWT');
+
 
   try {
     // Cria um mapa com os dados necessários
@@ -189,6 +212,7 @@ Future<void> editarDoacao(int index, Doacao doacao) async {
       'itemName': doacao.itemName,
     };
 
+
     final response = await http.put(
       Uri.parse('https://backend-ong.vercel.app/api/updateDoacao'), // Endpoint sem o ID
       headers: {
@@ -197,10 +221,9 @@ Future<void> editarDoacao(int index, Doacao doacao) async {
       },
       body: jsonEncode(dadosEditar), // Envia os dados no corpo da requisição
     );
-  
+
 
     if (response.statusCode == 200) {
-      print('Editado com sucesso');
       setState(() {
         _doacoes[index] = doacao; // Atualiza a lista localmente
       });
@@ -216,10 +239,13 @@ Future<void> editarDoacao(int index, Doacao doacao) async {
 }
 
 
+
+
   // Função para atualizar a meta de uma doação
   Future<void> atualizarMeta(String id, int novaMeta) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('tokenJWT');
+
 
     try {
       final response = await http.patch(
@@ -230,6 +256,7 @@ Future<void> editarDoacao(int index, Doacao doacao) async {
         },
         body: jsonEncode({'meta': novaMeta}),
       );
+
 
       if (response.statusCode == 200) {
         buscarDoacoes();
@@ -242,11 +269,13 @@ Future<void> editarDoacao(int index, Doacao doacao) async {
     }
   }
 
+
   // Função para remover uma doação
 Future<void> removerDoacao(int index) async {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('tokenJWT');
   final doacao = _doacoes[index];
+
 
   try {
     final response = await http.delete(
@@ -259,7 +288,7 @@ Future<void> removerDoacao(int index) async {
         'id': doacao.id,  // Passando o ID da doação no corpo da requisição
       }),
     );
-    print('Deletado com sucesso');
+
 
     if (response.statusCode == 200) {
       setState(() {
@@ -275,6 +304,8 @@ Future<void> removerDoacao(int index) async {
 }
 
 
+
+
   void _mostrarDialogoEditarDoacao(int index, Doacao doacao) {
     final formKey = GlobalKey<FormState>();
     int id = doacao.id;
@@ -284,6 +315,7 @@ Future<void> removerDoacao(int index) async {
     int quantidade = doacao.quantidade;
     int metaQuantidade = doacao.metaQuantidade;
     String metaDate = doacao.metaDate;
+
 
     showDialog(
       context: context,
@@ -392,6 +424,7 @@ Future<void> removerDoacao(int index) async {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -439,6 +472,7 @@ Future<void> removerDoacao(int index) async {
       ),
     );
   }
+
 
   Widget _buildDonationsTable() {
     return _doacoes.isEmpty
@@ -546,6 +580,7 @@ Future<void> removerDoacao(int index) async {
           );
   }
 
+
   List<DataRow> _buildDonationRows() {
     return List.generate(_doacoesFiltradas.length, (index) {
       final doacao = _doacoesFiltradas[index];
@@ -601,81 +636,126 @@ Future<void> removerDoacao(int index) async {
     });
   }
 
-  void _mostrarOpcoesFiltro() {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Opções de Filtro',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              SizedBox(height: 16),
 
-              // Dropdown para Categoria
-              DropdownButtonFormField<String>(
-                value: _categoriaSelecionada,
-                decoration: InputDecoration(
-                  labelText: 'Categoria',
-                  border: OutlineInputBorder(),
-                ),
-                items: <String>[
-                  'Todos',
-                  'alimento',
-                  'monetario',
-                  'mobilia',
-                  'outros',
-                  'roupa'
-                ].map((String categoria) {
-                  return DropdownMenuItem<String>(
-                    value: categoria,
-                    child: Text(categoria),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _categoriaSelecionada =
-                        newValue == 'Todos' ? null : newValue;
-                  });
-                },
-              ),
-              SizedBox(height: 16),
-
-              // Botão de Aplicar Filtro
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _filtrarDoacoes();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                  ),
-                  child: Text(
-                    'Aplicar Filtro',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
+void _mostrarOpcoesFiltro() {
+  showModalBottomSheet(
+    context: context,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    backgroundColor: Colors.white, // Cor de fundo do BottomSheet
+    builder: (context) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Card(
+          color: Colors.white, // Cor de fundo branca para o card
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12), // Bordas arredondadas no card
           ),
-        );
-      },
-    );
-  }
+          elevation: 0,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Opções de Filtro',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 16),
+
+
+                // Dropdown para Categoria
+                DropdownButtonFormField<String>(
+                  value: _categoriaSelecionada,
+                  decoration: InputDecoration(
+                    labelText: 'Categoria',
+                    labelStyle: TextStyle(
+                      color: const Color.fromARGB(255, 100, 100, 100),
+                      fontWeight: FontWeight.w500,
+                    ), // Cor da label
+                    filled: true,
+                    fillColor: Colors.grey[200], // Cor de fundo suave
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12), // Bordas arredondadas
+                      borderSide: BorderSide(
+                        color: _categoriaSelecionada == null
+                            ? const Color.fromARGB(255, 200, 200, 200)
+                            : Colors.blue, // Borda azul quando selecionado
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12), // Bordas arredondadas
+                      borderSide: BorderSide(color: Colors.blue, width: 2), // Borda azul quando o campo estiver em foco
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12), // Bordas arredondadas
+                      borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0), // Borda cinza quando desabilitado
+                    ),
+                  ),
+                  dropdownColor: Colors.white, // Cor de fundo do menu dropdown para branco
+                  items: <String>[
+                    'Todos',
+                    'alimento',
+                    'monetario',
+                    'mobilia',
+                    'outros',
+                    'roupa'
+                  ].map((String categoria) {
+                    return DropdownMenuItem<String>(
+                      value: categoria,
+                      child: Text(categoria),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _categoriaSelecionada =
+                          newValue == 'Todos' ? null : newValue;
+                    });
+                  },
+                ),
+                SizedBox(height: 16),
+
+
+                // Botão de Aplicar Filtro
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _filtrarDoacoes();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue, // Cor do botão
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8), // Bordas arredondadas
+                      ),
+                    ),
+                    child: Text(
+                      'Aplicar Filtro',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+
+
+
+
 
   Widget _buildSearchAndActionBar() {
     return Row(
@@ -699,6 +779,7 @@ Future<void> removerDoacao(int index) async {
         ),
         const SizedBox(width: 8),
 
+
         // Botão de Filtro
         ElevatedButton.icon(
           onPressed: _mostrarOpcoesFiltro,
@@ -721,109 +802,228 @@ Future<void> removerDoacao(int index) async {
     );
   }
 
+
   void _mostrarDialogoAdicionarDoacao() {
     final formKey = GlobalKey<FormState>();
     String categoria = '', itemName = '', dataCreated = '', metaDate = '';
     int quantidade = 0, metaQuantidade = 0;
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Adicionar Doação'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Categoria'),
-                    onSaved: (value) => categoria = value!,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
+
+   showDialog(
+  context: context,
+  builder: (BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white, // Card branco
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12), // Bordas arredondadas no card
+      ),
+      title: Text(
+        'Adicionar Doação',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: const Color.fromARGB(255, 5, 5, 5), // Cor azul para o título
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Categoria
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Categoria',
+                  labelStyle: TextStyle(color: const Color.fromARGB(255, 119, 119, 119), fontWeight: FontWeight.w500), // Cor da label
+                  fillColor: Colors.grey[200], // Cor de fundo cinza
+                  filled: true, // Aplica a cor de fundo
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.blue, width: 2), // Borda azul no foco
                   ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Item'),
-                    onSaved: (value) => itemName = value!,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0), // Borda padrão cinza
                   ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Data de Criação'),
-                    onSaved: (value) => dataCreated = value!,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Quantidade'),
-                    keyboardType: TextInputType.number,
-                    onSaved: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        quantidade = int.parse(value);
-                      } else {
-                        quantidade = 0;
-                      }
-                    },
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Meta Quantidade'),
-                    keyboardType: TextInputType.number,
-                    onSaved: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        metaQuantidade = int.parse(value);
-                      } else {
-                        metaQuantidade = 0;
-                      }
-                    },
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Data Meta'),
-                    onSaved: (value) => metaDate = value!,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Campo obrigatório' : null,
-                  ),
-                ],
+                ),
+                onSaved: (value) => categoria = value!,
+                validator: (value) =>
+                    value!.isEmpty ? 'Campo obrigatório' : null,
               ),
+              SizedBox(height: 12),
+              // Item
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Item',
+                  labelStyle: TextStyle(color: const Color.fromARGB(255, 119, 119, 119), fontWeight: FontWeight.w500),
+                  fillColor: Colors.grey[200],
+                  filled: true,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.blue, width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                  ),
+                ),
+                onSaved: (value) => itemName = value!,
+                validator: (value) =>
+                    value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+              SizedBox(height: 12),
+              // Data de Criação
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Data de Criação',
+                  labelStyle: TextStyle(color: const Color.fromARGB(255, 119, 119, 119), fontWeight: FontWeight.w500),
+                  fillColor: Colors.grey[200],
+                  filled: true,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.blue, width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                  ),
+                ),
+                onSaved: (value) => dataCreated = value!,
+                validator: (value) =>
+                    value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+              SizedBox(height: 12),
+              // Quantidade
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Quantidade',
+                  labelStyle: TextStyle(color: const Color.fromARGB(255, 119, 119, 119), fontWeight: FontWeight.w500),
+                  fillColor: Colors.grey[200],
+                  filled: true,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.blue, width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+                onSaved: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    quantidade = int.parse(value);
+                  } else {
+                    quantidade = 0;
+                  }
+                },
+                validator: (value) =>
+                    value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+              SizedBox(height: 12),
+              // Meta Quantidade
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Meta Quantidade',
+                  labelStyle: TextStyle(color: const Color.fromARGB(255, 119, 119, 119), fontWeight: FontWeight.w500),
+                  fillColor: Colors.grey[200],
+                  filled: true,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.blue, width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+                onSaved: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    metaQuantidade = int.parse(value);
+                  } else {
+                    metaQuantidade = 0;
+                  }
+                },
+                validator: (value) =>
+                    value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+              SizedBox(height: 12),
+              // Data Meta
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Data Meta',
+                  labelStyle: TextStyle(color: const Color.fromARGB(255, 119, 119, 119), fontWeight: FontWeight.w500),
+                  fillColor: Colors.grey[200],
+                  filled: true,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.blue, width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255), width: 0),
+                  ),
+                ),
+                onSaved: (value) => metaDate = value!,
+                validator: (value) =>
+                    value!.isEmpty ? 'Campo obrigatório' : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        // Botão Cancelar
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancelar',
+            style: TextStyle(
+              color: const Color.fromARGB(255, 65, 65, 65), // Cor do botão cancelar
+              fontWeight: FontWeight.w500,
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancelar'),
+        ),
+        // Botão Salvar
+        ElevatedButton(
+          onPressed: () {
+            if (formKey.currentState!.validate()) {
+              formKey.currentState!.save();
+              adicionarDoacao(Doacao(
+                id: _doacoes.length + 1,
+                categoria: categoria,
+                itemName: itemName,
+                dataCreated: dataCreated,
+                quantidade: quantidade,
+                metaQuantidade: metaQuantidade,
+                metaDate: metaDate,
+              ));
+              Navigator.pop(context);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue, // Cor de fundo do botão
+            foregroundColor: Colors.white, // Cor do texto no botão
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8), // Bordas arredondadas
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  formKey.currentState!.save();
-                  adicionarDoacao(Doacao(
-                    id: _doacoes.length + 1,
-                    categoria: categoria,
-                    itemName: itemName,
-                    dataCreated: dataCreated,
-                    quantidade: quantidade,
-                    metaQuantidade: metaQuantidade,
-                    metaDate: metaDate,
-                  ));
-                  Navigator.pop(context);
-                }
-              },
-              child: Text('Salvar'),
-            ),
-          ],
-        );
-      },
+          ),
+          child: Text('Salvar'),
+        ),
+      ],
     );
+  },
+);
   }
 }
-
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
 
+
   const CustomAppBar({super.key, required this.title});
+
 
   void _navigateToPage(BuildContext context, String page) {
     switch (page) {
@@ -850,6 +1050,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         break;
     }
   }
+
 
   void _showSearchDialog(BuildContext context) {
     showDialog(
@@ -879,11 +1080,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
+
   Future<void> _logout(BuildContext context) async {
     // Limpa o estado de login armazenado em SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('tokenJWT');
     await prefs.remove('manterConectado');
+
 
     // Redireciona para a tela de login
     Navigator.pushAndRemoveUntil(
@@ -892,6 +1095,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       (route) => false,
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -943,24 +1147,43 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             _showSearchDialog(context);
           },
         ),
-        IconButton(
-          icon: Icon(Icons.logout),
-          onPressed: () async {
-            await _logout(context); // Chama o método de logout
+        // Ícone de usuário que exibe opções
+        PopupMenuButton<String>(
+          icon: Icon(Icons.account_circle),
+          onSelected: (value) {
+            if (value == 'Logout') {
+              _logout(context); // Chama o método de logout
+            }
           },
+          itemBuilder: (BuildContext context) => [
+            PopupMenuItem<String>(
+              value: 'Logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, color: Colors.red),
+                  SizedBox(width: 10),
+                  Text('Logout'),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
       iconTheme: IconThemeData(color: Colors.white),
     );
   }
 
+
   @override
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
 
 
+
+
 class Footer extends StatelessWidget {
   const Footer({super.key});
+
 
   @override
   Widget build(BuildContext context) {
@@ -975,5 +1198,6 @@ class Footer extends StatelessWidget {
     );
   }
 }
+
 
 
