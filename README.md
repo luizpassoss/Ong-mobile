@@ -77,3 +77,56 @@ flutter test integration_test/app_test.dart
 ```
 
 Este comando executa os testes end-to-end através do pacote que você escolher.
+
+
+
+Tela de Login
+Desc: Tela incial para dar acesso ao app
+
+![WhatsApp Image 2024-12-05 at 19 58 48](https://github.com/user-attachments/assets/a894b1aa-8993-4830-8274-2b712f74fdb7)
+
+
+
+Tela de Dashboard
+Desc: Tela onde tem os dashboard mostrando dados em tempo real
+
+![WhatsApp Image 2024-12-05 at 19 58 49](https://github.com/user-attachments/assets/496ea2bc-1f8b-46ac-93b9-4b98e3dead70)
+
+
+
+Tela de Familias Cadastradas
+Desc: Tela onde pode cadastrar as familias que recebem doações da ONG
+
+![WhatsApp Image 2024-12-05 at 19 58 50](https://github.com/user-attachments/assets/8f5b3106-2503-4088-a5c8-4f9089975161)
+
+
+
+Tela de Doações
+Desc: Tela de cadastro de Doações recebidas e doadas
+
+![WhatsApp Image 2024-12-05 at 19 58 50 (1)](https://github.com/user-attachments/assets/2e94ae97-4842-4183-b65e-55d43be58f37)
+
+
+
+
+Link Confluence:
+https://umahoradacerto.atlassian.net/wiki/home
+
+
+Link Jira:
+https://umahoradacerto.atlassian.net/jira/your-work
+
+
+
+AUTORES:
+Cauê Fernandes
+João V. Ziem
+Luiz F. Passos
+Walter Theodoro
+
+
+
+
+
+
+
